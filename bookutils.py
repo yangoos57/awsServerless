@@ -54,56 +54,59 @@ def kyoboSave(ISBNs: list) -> list:
     return result
 
 
-def bookInfoExtraction(ISBN: str, model) -> list:
+def findEng(text: str) -> str:
+    # han = re.findall(u'[\u3130-\u318F\uAC00-\uD7A3]+', text)
+    eng = re.findall("[a-zA-Z]+", text)
+    return eng
+
+
+def removeStopwords(text: list, stopwords: list) -> str:
+    # text = list(filter(None, doc.split(" ")))
+    word = [word for word in text if word not in stopwords]
+    result = " ".join(word)
+    return result
+
+
+def bookInfoExtraction(doc: str, stopwords: list, model) -> list:
     """
     반복적으로 모델을 불러와야하는 문제를 개선하기 위해 변수에 model을 넣었음.
     모델을 미리 불러와야 한다.
     리턴 값으로 keyword를 반환함.
     """
     start_in = time.time()
-
-    HTML = kyoboExtract(ISBN)
-    doc = "".join(HTML)
     doc: str = (
         # re.sub("[_-]|\d[.]|\d|[▶★●]", "", doc)
         re.sub("\d[.]|\d|\W|[_]", " ", doc)
-        .replace("닫기", "")
         .replace("머신 러닝", "머신러닝")
         .replace("인공 지능", "인공지능")
-        .replace("사용", "")
     )
-    # print("HTML : ", start_in - time.time())
+    text = list(filter(None, doc.split(" ")))
+    removedoc = removeStopwords(text, stopwords)
 
     # 문서 정보 추출
-    doc = HTML.get("doc")
     hannanum = Hannanum()
-    hanNouns = hannanum.nouns(doc)
-    testType = hanNouns
-    words = " ".join(testType)
-    vect = CountVectorizer(ngram_range=(1, 2))
+    hanNouns = hannanum.nouns(removedoc)
+    vect = CountVectorizer(ngram_range=(2, 2))
+    words = " ".join(hanNouns)
     count = vect.fit([words])
     candidate = count.get_feature_names_out()
-    # print("ExtractDoc : ", start_in - time.time())
 
-    doc_embedding = model.encode([doc])
+    doc_embedding = model.encode([removedoc])
     candidate_embeddings = model.encode(candidate)
     result: list = mmr(
         doc_embedding, candidate_embeddings, candidate, top_n=20, diversity=0.2
     )
-    # print("mmr : ", start_in - time.time())
 
     items = []
     for item in result:
         items.extend(item.split(" "))
 
-    #
-    # bertInfo = pd.DataFrame(items).groupby(by=0).size().sort_values(ascending=False).index[:20]
-    # keyWordInfo = pd.DataFrame(testType).groupby(by=0).size().sort_values(ascending=False).index[:20]
+    # Stopwords remove
+    items = removeStopwords(items, stopwords)
+    hanNouns = removeStopwords(hanNouns, stopwords)
 
-    # print(list(set(bertInfo.append(keyWordInfo))))
-
-    bertInfo = pd.DataFrame(items)
-    keyWordInfo = pd.DataFrame(testType)
+    bertInfo = pd.DataFrame(items.split(" "))
+    keyWordInfo = pd.DataFrame(hanNouns.split(" "))
 
     keyWords = (
         pd.concat([bertInfo, keyWordInfo], axis=0)
@@ -114,7 +117,7 @@ def bookInfoExtraction(ISBN: str, model) -> list:
     )
 
     keyWords = list(filter(lambda a: a if len(a) > 1 else None, keyWords))
-
+    # engList = pd.DataFrame(findEng(doc)).value_counts().sort_values(ascending=False)[:5]
     return keyWords[:20]
 
 
@@ -155,3 +158,19 @@ def mmr(doc_embedding, candidate_embeddings, words, top_n, diversity):
         candidates_idx.remove(mmr_idx)
 
     return [words[idx] for idx in keywords_idx]
+
+
+if __name__ == "__main__":
+
+    bookInfo = pd.read_parquet("./data/bookInfo.parquet")
+    stopwords = pd.read_csv("./data/stopwords.csv").T.values.tolist()[0]
+    model = SentenceTransformer(
+        "sentence-transformers/xlm-r-100langs-bert-base-nli-stsb-mean-tokens"
+    )
+    text = bookInfo.iloc[0].dropna().astype(str).tolist()
+
+    text = " ".join(text)
+
+    result = bookInfoExtraction(text, stopwords, model)
+
+    print(result)
