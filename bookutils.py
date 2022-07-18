@@ -9,6 +9,7 @@ import numpy as np
 import pandas as pd
 import time
 from tqdm.notebook import tqdm
+from keybert import KeyBERT
 
 
 def kyoboExtract(ISBN: int) -> list:
@@ -160,17 +161,74 @@ def mmr(doc_embedding, candidate_embeddings, words, top_n, diversity):
     return [words[idx] for idx in keywords_idx]
 
 
+def keyBertExtraction(doc: str, stopwords: list, keyBertModel) -> list:
+    """
+    반복적으로 모델을 불러와야하는 문제를 개선하기 위해 변수에 model을 넣었음.
+    모델을 미리 불러와야 한다.
+    리턴 값으로 keyword를 반환함.
+    """
+    doc: str = (
+        re.sub("\d[.]|\d|\W|[_]", " ", doc)
+        .replace("머신 러닝", "머신러닝")
+        .replace("인공 지능", "인공지능")
+    )
+    text = list(filter(None, doc.split(" ")))
+    removedoc: str = removeStopwords(text, stopwords)
+
+    # 문서 정보 추출
+    hannanum = Hannanum()
+    hanNouns: list = hannanum.nouns(removedoc)
+    words: str = " ".join(hanNouns)
+
+    docResult: list = keyBertModel.extract_keywords(
+        words, top_n=10, keyphrase_ngram_range=(3, 3), use_mmr=True, diversity=0.1
+    )
+    result = list(map(lambda x: x[0], docResult))
+
+    items = []
+    for item in result:
+        items.extend(item.split(" "))
+
+    # Stopwords remove
+    items: str = removeStopwords(items, stopwords)
+    hanNouns: str = removeStopwords(hanNouns, stopwords)
+
+    bertInfo = pd.DataFrame(items.split(" "))
+    keyWordInfo = pd.DataFrame(hanNouns.split(" "))
+
+    keyWords = (
+        pd.concat([bertInfo, keyWordInfo], axis=0)
+        .groupby(by=0)
+        .size()
+        .sort_values(ascending=False)
+        .index.tolist()
+    )
+
+    keyWords = list(filter(lambda a: a if len(a) > 1 else None, keyWords))
+
+    engList = (
+        pd.DataFrame(findEng(removedoc))
+        .value_counts()
+        .sort_values(ascending=False)[:20]
+        .index.tolist()
+    )
+
+    engList = list(map(lambda x: x[0], engList))
+
+    result: list = keyWords[:20]
+    result.extend(engList)
+    return result
+
+
 if __name__ == "__main__":
 
     bookInfo = pd.read_parquet("./data/bookInfo.parquet")
     stopwords = pd.read_csv("./data/stopwords.csv").T.values.tolist()[0]
-    model = SentenceTransformer(
-        "sentence-transformers/xlm-r-100langs-bert-base-nli-stsb-mean-tokens"
-    )
+    keyBertModel = KeyBERT("paraphrase-multilingual-MiniLM-L12-v2")
     text = bookInfo.iloc[0].dropna().astype(str).tolist()
 
     text = " ".join(text)
 
-    result = bookInfoExtraction(text, stopwords, model)
+    result = keyBertExtraction(text, stopwords, keyBertModel)
 
     print(result)
