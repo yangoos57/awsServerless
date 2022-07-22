@@ -12,6 +12,90 @@ from tqdm.notebook import tqdm
 from keybert import KeyBERT
 
 
+# Extract Function 시작
+def loadLibBook(libCode: int, startDate: str) -> pd.DataFrame:
+    """
+    ex) startData : "2022-07-11"
+    """
+    from datetime import timedelta, datetime
+
+    day = datetime.strptime(startDate, "%Y-%m-%d").date()
+
+    # 해당 달의 첫째날 구하기
+    first_day = day.replace(day=1)
+
+    # 전달의 마지막 날 구하기
+    dayLast = first_day - timedelta(days=1)
+
+    # 전달의 첫째 날 구하기
+    dayStart = dayLast.replace(day=1)
+    # print(dayStart, " - ", dayLast)
+
+    libUrl = f"http://data4library.kr/api/itemSrch?libCode={libCode}&startDt={dayStart}&endDt={dayLast}&authKey=7123eacb2744a02faca2508a82304c3bf154bf0b285da35c2faa2b8498b09872&pageSize=10000"
+    libHtml = requests.get(libUrl)
+    libSoup = BeautifulSoup(libHtml.content, features="xml")
+
+    libBookname = list(map(lambda x: x.string, libSoup.find_all("bookname")))
+    libAuthor = list(map(lambda x: x.string, libSoup.find_all("authors")))
+    libPublisher = list(map(lambda x: x.string, libSoup.find_all("publisher")))
+    libISBN = list(map(lambda x: x.string, libSoup.find_all("isbn13")))
+    libClassNum = list(map(lambda x: x.string, libSoup.find_all("class_no")))
+    libRegDate = list(map(lambda x: x.string, libSoup.find_all("reg_date")))
+    libBookImageURL = list(map(lambda x: x.string, libSoup.find_all("bookImageURL")))
+
+    data = pd.DataFrame(
+        [
+            libBookname,
+            libAuthor,
+            libPublisher,
+            libISBN,
+            libClassNum,
+            libRegDate,
+            libBookImageURL,
+        ]
+    ).T
+    data.columns = ["도서명", "저자", "출판사", "ISBN", "주제분류번호", "등록일자", "이미지주소"]
+    sortedData: pd.DataFrame = data[~data["주제분류번호"].isna()]
+    return sortedData
+
+
+def extractAllLibBooks(startDate: str) -> pd.DataFrame:
+    seoulLibCode = [
+        111003,
+        111004,
+        111005,
+        111006,
+        111007,
+        111008,
+        111009,
+        111010,
+        111022,
+        111011,
+        111012,
+        111013,
+        111014,
+        111031,
+        111016,
+        111017,
+        111030,
+        111015,
+        111018,
+        111019,
+        111020,
+        111021,
+    ]
+    dataframes = []
+    for code in tqdm(seoulLibCode):
+        libBook: pd.DataFrame = loadLibBook(code, startDate)
+        dataframes.append(libBook)
+
+    result = pd.concat(dataframes).drop_duplicates(subset="ISBN")
+    val = result["주제분류번호"].astype(str)
+    BM = val.str.contains("004") | val.str.contains("005")
+    result: pd.DataFrame = result[BM].reset_index(drop=True)
+    return result
+
+
 def kyoboExtract(ISBN: int) -> list:
     kyoboUrl = f"http://www.kyobobook.co.kr/product/detailViewKor.laf?ejkGb=KOR&mallGb=KOR&barcode={ISBN}"
     kyoboHtml = requests.get(kyoboUrl)
@@ -40,12 +124,9 @@ def kyoboExtract(ISBN: int) -> list:
     return itemList
 
 
-# print(kyoboExtract(9791162242964))
-
-
 def kyoboSave(ISBNs: list) -> list:
     # return [kyoboExtract(ISBN) for ISBN in ISBNs]
-    result = []
+    result: list = []
     for num, ISBN in tqdm(enumerate(ISBNs)):
         val = kyoboExtract(ISBN)
         result.append(val)
@@ -53,6 +134,18 @@ def kyoboSave(ISBNs: list) -> list:
             time.sleep(0.5)
 
     return result
+
+
+def extractProcess(startDate: str) -> tuple:
+    df = extractAllLibBooks(startDate)
+    dfISBN = df["ISBN"]
+    ### mysql에 저장된 ISBN과 비교해서 없는 것만 불러오는 function 추가하기
+    docs: list = kyoboSave(dfISBN)
+    print(f"총 : {len(docs)}개 추출")
+    return df, docs
+
+
+# Transform Functions
 
 
 def findEng(text: str) -> str:
@@ -68,6 +161,91 @@ def removeStopwords(text: list, stopwords: list) -> str:
     return result
 
 
+### 최신버전
+def keyBertExtraction(doc: str, stopwords: list, keyBertModel) -> list:
+    """
+    반복적으로 모델을 불러와야하는 문제를 개선하기 위해 변수에 model을 넣었음.
+    모델을 미리 불러와야 한다.
+    리턴 값으로 keyword를 반환함.
+    """
+    doc: str = (
+        re.sub("\d[.]|\d|\W|[_]", " ", doc)
+        .replace("머신 러닝", "머신러닝")
+        .replace("인공 지능", "인공지능")
+    )
+    text = list(filter(None, doc.split(" ")))
+    removedoc: str = removeStopwords(text, stopwords)
+
+    # 문서 정보 추출
+    hannanum = Hannanum()
+    hanNouns: list = hannanum.nouns(removedoc)
+    words: str = " ".join(hanNouns)
+
+    docResult: list = keyBertModel.extract_keywords(
+        words, top_n=10, keyphrase_ngram_range=(3, 3), use_mmr=True, diversity=0.1
+    )
+    result = list(map(lambda x: x[0], docResult))
+
+    items = []
+    for item in result:
+        items.extend(item.split(" "))
+
+    # Stopwords remove
+    items: str = removeStopwords(items, stopwords)
+    hanNouns: str = removeStopwords(hanNouns, stopwords)
+
+    bertInfo = pd.DataFrame(items.split(" "))
+    keyWordInfo = pd.DataFrame(hanNouns.split(" "))
+
+    keyWords = (
+        pd.concat([bertInfo, keyWordInfo], axis=0)
+        .groupby(by=0)
+        .size()
+        .sort_values(ascending=False)
+        .index.tolist()
+    )
+
+    keyWords = list(filter(lambda a: a if len(a) > 1 else None, keyWords))
+
+    engList = (
+        pd.DataFrame(findEng(removedoc))
+        .value_counts()
+        .sort_values(ascending=False)[:20]
+        .index.tolist()
+    )
+
+    engList = list(map(lambda x: x[0], engList))
+
+    result: list = keyWords[:20]
+    result.extend(engList)
+    return result
+
+
+def transformProcess(extractProcess: tuple) -> pd.DataFrame:
+    df: pd.DataFrame = extractProcess[0]
+    docs: list = extractProcess[1]
+
+    from keybert import KeyBERT
+
+    stopwords = pd.read_csv("./data/stopwords.csv").T.values.tolist()[0]
+    keyBertModel = KeyBERT("paraphrase-multilingual-MiniLM-L12-v2")
+
+    keywords = []
+    for doc in tqdm(docs):
+        doc = " ".join(doc)
+        val: list = keyBertExtraction(
+            doc, stopwords=stopwords, keyBertModel=keyBertModel
+        )
+        keywords.append(val)
+
+    df["keywords"] = keywords
+
+    return df
+
+
+# TransformerFunctions 끝
+
+## 예전버전(삭제용)
 def bookInfoExtraction(doc: str, stopwords: list, model) -> list:
     """
     반복적으로 모델을 불러와야하는 문제를 개선하기 위해 변수에 model을 넣었음.
@@ -159,65 +337,6 @@ def mmr(doc_embedding, candidate_embeddings, words, top_n, diversity):
         candidates_idx.remove(mmr_idx)
 
     return [words[idx] for idx in keywords_idx]
-
-
-def keyBertExtraction(doc: str, stopwords: list, keyBertModel) -> list:
-    """
-    반복적으로 모델을 불러와야하는 문제를 개선하기 위해 변수에 model을 넣었음.
-    모델을 미리 불러와야 한다.
-    리턴 값으로 keyword를 반환함.
-    """
-    doc: str = (
-        re.sub("\d[.]|\d|\W|[_]", " ", doc)
-        .replace("머신 러닝", "머신러닝")
-        .replace("인공 지능", "인공지능")
-    )
-    text = list(filter(None, doc.split(" ")))
-    removedoc: str = removeStopwords(text, stopwords)
-
-    # 문서 정보 추출
-    hannanum = Hannanum()
-    hanNouns: list = hannanum.nouns(removedoc)
-    words: str = " ".join(hanNouns)
-
-    docResult: list = keyBertModel.extract_keywords(
-        words, top_n=10, keyphrase_ngram_range=(3, 3), use_mmr=True, diversity=0.1
-    )
-    result = list(map(lambda x: x[0], docResult))
-
-    items = []
-    for item in result:
-        items.extend(item.split(" "))
-
-    # Stopwords remove
-    items: str = removeStopwords(items, stopwords)
-    hanNouns: str = removeStopwords(hanNouns, stopwords)
-
-    bertInfo = pd.DataFrame(items.split(" "))
-    keyWordInfo = pd.DataFrame(hanNouns.split(" "))
-
-    keyWords = (
-        pd.concat([bertInfo, keyWordInfo], axis=0)
-        .groupby(by=0)
-        .size()
-        .sort_values(ascending=False)
-        .index.tolist()
-    )
-
-    keyWords = list(filter(lambda a: a if len(a) > 1 else None, keyWords))
-
-    engList = (
-        pd.DataFrame(findEng(removedoc))
-        .value_counts()
-        .sort_values(ascending=False)[:20]
-        .index.tolist()
-    )
-
-    engList = list(map(lambda x: x[0], engList))
-
-    result: list = keyWords[:20]
-    result.extend(engList)
-    return result
 
 
 if __name__ == "__main__":
