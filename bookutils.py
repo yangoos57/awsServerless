@@ -1,6 +1,5 @@
 from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.feature_extraction.text import CountVectorizer
-from sentence_transformers import SentenceTransformer
 from konlpy.tag import Hannanum
 from bs4 import BeautifulSoup
 import requests
@@ -10,6 +9,8 @@ import pandas as pd
 import time
 from tqdm.notebook import tqdm
 from keybert import KeyBERT
+from queue import Queue
+from threading import Thread
 
 
 # Extract Function 시작
@@ -59,6 +60,62 @@ def loadLibBook(libCode: int, startDate: str) -> pd.DataFrame:
     return sortedData
 
 
+##최신버전
+def extractAllLibBooksMultiThread(date: str, thread_num: int = 11) -> pd.DataFrame:
+    startDate = date
+    q = Queue()
+    dataframes = []
+    seoulLibCode = [
+        111003,
+        111004,
+        111005,
+        111006,
+        111007,
+        111008,
+        111009,
+        111010,
+        111022,
+        111011,
+        111012,
+        111013,
+        111014,
+        111031,
+        111016,
+        111017,
+        111030,
+        111015,
+        111018,
+        111019,
+        111020,
+        111021,
+    ]
+
+    for code in seoulLibCode:
+        q.put(code)
+
+    def process():
+        while True:
+            code = q.get()
+            item = loadLibBook(code, startDate)
+            dataframes.append(item)
+            q.task_done()
+            print(f"{code} 완료")
+
+    for _ in range(thread_num):
+        worker = Thread(target=process)
+        worker.daemon = True
+        worker.start()
+
+    q.join()
+
+    result = pd.concat(dataframes).drop_duplicates(subset="ISBN")
+    val = result["주제분류번호"].astype(str)
+    BM = val.str.contains("004") | val.str.contains("005")
+    result: pd.DataFrame = result[BM].reset_index(drop=True)
+    return result
+
+
+# 과거버전(안정성 확보되면 삭제)
 def extractAllLibBooks(startDate: str) -> pd.DataFrame:
     seoulLibCode = [
         111003,
@@ -96,7 +153,7 @@ def extractAllLibBooks(startDate: str) -> pd.DataFrame:
     return result
 
 
-def kyoboExtract(ISBN: int) -> list:
+def extractKyobo(ISBN: int) -> list:
     kyoboUrl = f"http://www.kyobobook.co.kr/product/detailViewKor.laf?ejkGb=KOR&mallGb=KOR&barcode={ISBN}"
     kyoboHtml = requests.get(kyoboUrl)
     kyoboSoup = BeautifulSoup(kyoboHtml.content, "html.parser")
@@ -124,11 +181,40 @@ def kyoboExtract(ISBN: int) -> list:
     return itemList
 
 
+# 최신버전
+def kyoboSaveMultiThread(ISBNs: list, thread_num: int = 10) -> list:
+    result: list = []
+
+    q = Queue()
+    for ISBN in ISBNs:
+        q.put(ISBN)
+
+    def process():
+        for num in range(9999):
+            ISBN = q.get()
+            item = extractKyobo(ISBN)
+            result.append(item)
+            q.task_done()
+            if (num + 1) % 5 == 0:
+                time.sleep(0.5)
+
+    for _ in range(thread_num):
+        worker = Thread(target=process)
+        worker.daemon = True
+        worker.start()
+
+    q.join()
+    print("kyoboBooks 추출완료")
+
+    return result
+
+
+# 과거버전(안정성 확보되면 삭제)
 def kyoboSave(ISBNs: list) -> list:
     # return [kyoboExtract(ISBN) for ISBN in ISBNs]
     result: list = []
     for num, ISBN in tqdm(enumerate(ISBNs)):
-        val = kyoboExtract(ISBN)
+        val = extractKyobo(ISBN)
         result.append(val)
         if (num + 1) % 10 == 0:
             time.sleep(0.5)
@@ -136,11 +222,11 @@ def kyoboSave(ISBNs: list) -> list:
     return result
 
 
-def extractProcess(startDate: str) -> tuple:
-    df = extractAllLibBooks(startDate)
+def extract(startDate: str) -> tuple:
+    df = extractAllLibBooksMultiThread(startDate)
     dfISBN = df["ISBN"]
     ### mysql에 저장된 ISBN과 비교해서 없는 것만 불러오는 function 추가하기
-    docs: list = kyoboSave(dfISBN)
+    docs: list = kyoboSaveMultiThread(dfISBN)
     print(f"총 : {len(docs)}개 추출")
     return df, docs
 
@@ -221,11 +307,9 @@ def keyBertExtraction(doc: str, stopwords: list, keyBertModel) -> list:
     return result
 
 
-def transformProcess(extractProcess: tuple) -> pd.DataFrame:
-    df: pd.DataFrame = extractProcess[0]
-    docs: list = extractProcess[1]
-
-    from keybert import KeyBERT
+def transform(extract: tuple) -> pd.DataFrame:
+    df: pd.DataFrame = extract[0]
+    docs: list = extract[1]
 
     stopwords = pd.read_csv("./data/stopwords.csv").T.values.tolist()[0]
     keyBertModel = KeyBERT("paraphrase-multilingual-MiniLM-L12-v2")
