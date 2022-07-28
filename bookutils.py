@@ -248,7 +248,7 @@ def removeStopwords(text: list, stopwords: list) -> str:
 
 
 ### 최신버전
-def keyBertExtraction(doc: str, stopwords: list, keyBertModel) -> list:
+def extractKeywords(doc: str, stopwords: list, keyBertModel) -> list:
     """
     반복적으로 모델을 불러와야하는 문제를 개선하기 위해 변수에 model을 넣었음.
     모델을 미리 불러와야 한다.
@@ -317,9 +317,7 @@ def transform(extract: tuple) -> pd.DataFrame:
     keywords = []
     for doc in tqdm(docs):
         doc = " ".join(doc)
-        val: list = keyBertExtraction(
-            doc, stopwords=stopwords, keyBertModel=keyBertModel
-        )
+        val: list = extractKeywords(doc, stopwords=stopwords, keyBertModel=keyBertModel)
         keywords.append(val)
 
     df["keywords"] = keywords
@@ -432,6 +430,6 @@ if __name__ == "__main__":
 
     text = " ".join(text)
 
-    result = keyBertExtraction(text, stopwords, keyBertModel)
+    result = extractKeywords(text, stopwords, keyBertModel)
 
     print(result)
