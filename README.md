@@ -5,12 +5,11 @@
 <div align='center'>
     <img width=600px src='ReadMeImg/mainImg.svg'>
 </div>
-
----
+<div align='center' size='20px'> <h2> 도도모아는 서울 교육청 산하 21개 도서관이 보유한 컴퓨터 과학분야의 도서를 추천하는 앱입니다.</h2>
 
 <div align='center'>
 
-**[프로젝트 소개](#introduction)**
+**[프로젝트 진행 계기](#introduction)**
 **&nbsp;|&nbsp; [주요 기능](#features)**
 **&nbsp;|&nbsp; [추천 성능](#performance)**
 **&nbsp;|&nbsp; [앱 사용하기](#apps)**
@@ -21,14 +20,11 @@
 **&nbsp;|&nbsp; [도서 추천 알고리즘 소개](#recommandationy)**
 
 </div>
+</div>
 
 </br></br>
 
-## 프로젝트 소개 <a name="introduction"></a>
-
----
-
-**도도모아는 서울 교육청 산하 21개 도서관이 보유한 컴퓨터 과학분야의 도서를 추천하는 앱입니다.**
+## 프로젝트 진행 계기 <a name="introduction"></a>
 
 평소 도서관에서 데이터와 개발에 관한 책을 빌릴때 원하는 도서를 찾는데 어려움이 있었습니다.
 도서관의 도서 분류 기준이 명확하지 않아 같은 분야의 책이 여러 책장에 분산되어 있어서 직접 찾기에는 많은 시간을 필요로 했고,
@@ -40,27 +36,19 @@
 
 ## 주요기능 <a name="features"></a>
 
----
-
 - 키워드 검색 시 관련성 높은 도서 추천
 - 도서 제목으로 검색 시 연관성이 높은 도서 추천
 - 영문 키워드로 검색 가능 ex) python, react
 
 ## 성능 <a name="performance"></a>
 
----
-
 </br></br>
 
 ## 앱 사용하기 <a name="performance"></a>
 
----
-
 </br></br>
 
 ## 문제 정의 및 해결 <a name="consideration"></a>
-
----
 
 ### 도서 추천 방법
 
@@ -100,8 +88,6 @@ word2vec를 활용해 이 문제를 해결했습니다. 사용자가 검색한 �
 
 ## 코드 보기 <a name="code"></a>
 
----
-
 해당 페이지별로 파일 별 간단한 설명을 포함한 markdown을 작성했습니다.
 
 - 데이터 파이프라인 :
@@ -113,10 +99,8 @@ word2vec를 활용해 이 문제를 해결했습니다. 사용자가 검색한 �
 
 ## 데이터 파이프라인 소개 <a name="pipeline"></a>
 
----
-
-<div align='center'>
-    <img width=800px src='ReadMeImg/ETL.png'>
+<div>
+    <img width=900px src='ReadMeImg/ETL.png'>
 </div>
 
 </br>
@@ -143,10 +127,8 @@ word2vec를 활용해 이 문제를 해결했습니다. 사용자가 검색한 �
 
 ## 도서 추천 알고리즘 소개 <a name="recommandation"></a>
 
----
-
-<div align='center'>
-    <img width=800px src='ReadMeImg/recom.png'>
+<div>
+    <img width=900px src='ReadMeImg/recom.png'>
 </div>
 
 </br>
