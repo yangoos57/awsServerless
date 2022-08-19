@@ -1,20 +1,25 @@
-from sklearn.metrics.pairwise import cosine_similarity
-from sklearn.feature_extraction.text import CountVectorizer
-from konlpy.tag import Hannanum
+from gensim.models import Word2Vec
 from bs4 import BeautifulSoup
-import requests
-import re
-import numpy as np
-import pandas as pd
-import time
-from tqdm.notebook import tqdm
-from keybert import KeyBERT
-from queue import Queue
 from threading import Thread
+from keybert import KeyBERT
+from konlpy.tag import Okt
+from datetime import date
+from queue import Queue
+import pandas as pd
+import numpy as np
+import requests
+import pymysql
+import time
+import ast
+import re
 
 
-# Extract Function 시작
+# -- Extract Functions --#
 def loadLibBook(libCode: int, startDate: str) -> pd.DataFrame:
+    """
+    - 도서관 정보나루 API에서 도서관의 장서 데이터를 불러온다.
+    - extractAllLibBooksMultiThread에서 사용된다.
+    """
     libname = {
         111003: "강남",
         111004: "강동",
@@ -37,9 +42,6 @@ def loadLibBook(libCode: int, startDate: str) -> pd.DataFrame:
         111020: "정독",
         111021: "종로",
     }
-    """
-    ex) startData : "2022-07-11"
-    """
     from datetime import timedelta, datetime
 
     day = datetime.strptime(startDate, "%Y-%m-%d").date()
@@ -85,6 +87,10 @@ def loadLibBook(libCode: int, startDate: str) -> pd.DataFrame:
 
 ##최신버전
 def extractAllLibBooksMultiThread(startDate: str, thread_num: int = 10) -> pd.DataFrame:
+    """
+    - loadLibBook를 multithread로 구현해서 Extract 속도를 향상시켰다.
+    - queue 와 thread library를 사용했다.
+    """
 
     q = Queue()
     dataframes = []
@@ -137,46 +143,12 @@ def extractAllLibBooksMultiThread(startDate: str, thread_num: int = 10) -> pd.Da
     return result
 
 
-# 과거버전(안정성 확보되면 삭제)
-def extractAllLibBooks(startDate: str) -> pd.DataFrame:
-    seoulLibCode = [
-        111003,
-        111004,
-        111005,
-        111006,
-        111007,
-        111008,
-        111009,
-        111010,
-        111022,
-        111011,
-        111012,
-        111013,
-        111014,
-        111031,
-        111016,
-        111017,
-        111030,
-        111015,
-        111018,
-        111019,
-        111020,
-        111021,
-    ]
-    dataframes = []
-    for code in tqdm(seoulLibCode):
-        libBook: pd.DataFrame = loadLibBook(code, startDate)
-        dataframes.append(libBook)
-
-    result = pd.concat(dataframes).drop_duplicates(subset="ISBN")
-    result = pd.concat(dataframes)
-    val = result["주제분류번호"].astype(str)
-    BM = val.str.contains("004") | val.str.contains("005")
-    result: pd.DataFrame = result[BM].reset_index(drop=True)
-    return result
-
-
 def extractKyobo(ISBN: int) -> list:
+    """
+    - 새롭게 확보한 도서의 데이터를 교보문고에서 크롤링한다.
+    - 목차, 도서소개, 추천사 등 가용한 텍스트 모두를 수집한다.
+    - kyoboSaveMultiThread에서 사용된다.
+    """
     kyoboUrl = f"http://www.kyobobook.co.kr/product/detailViewKor.laf?ejkGb=KOR&mallGb=KOR&barcode={ISBN}"
     kyoboHtml = requests.get(kyoboUrl)
     kyoboSoup = BeautifulSoup(kyoboHtml.content, "html.parser")
@@ -205,7 +177,12 @@ def extractKyobo(ISBN: int) -> list:
 
 
 # 최신버전
-def kyoboSaveMultiThread(ISBNs: list, thread_num: int = 10) -> list:
+def extractKyoboMultiThread(ISBNs: list, thread_num: int = 10) -> list:
+    """
+    - kyobosave를 multithread로 구현해서 Extract 속도를 향상시켰다.
+    - 목차, 도서소개, 추천사 등 가용한 텍스트 모두를 수집한다.
+    - 수집 된 리스트는 형태소분석을 거쳐 w2v학습과 keyBert 키워드 추출에 활용된다.
+    """
     result: list = []
 
     q = Queue()
@@ -232,50 +209,119 @@ def kyoboSaveMultiThread(ISBNs: list, thread_num: int = 10) -> list:
     return result
 
 
-# 과거버전(안정성 확보되면 삭제)
-def kyoboSave(ISBNs: list) -> list:
-    # return [kyoboExtract(ISBN) for ISBN in ISBNs]
-    result: list = []
-    for num, ISBN in tqdm(enumerate(ISBNs)):
-        val = extractKyobo(ISBN)
-        result.append(val)
-        if (num + 1) % 10 == 0:
-            time.sleep(0.5)
-
-    return result
+def changeStringToList(strList):
+    """
+    - dataframe안에 list를 통으로 넣으면 str으로 저장된다.
+    - ast 라이브러리를 쓰면 원래 ㅣist 이지만 str 타입으로 표현된 값을 다시 list 타입으로 바꿔준다.
+    """
+    return ast.literal_eval(strList)
 
 
-def extract(startDate: str) -> tuple:
-    df = extractAllLibBooksMultiThread(startDate)
-    dfISBN = df["ISBN"]
-    ### mysql에 저장된 ISBN과 비교해서 없는 것만 불러오는 function 추가하기
-    docs: list = kyoboSaveMultiThread(dfISBN)
-    print(f"총 : {len(docs)}개 추출")
-    return df, docs
+def saveText(newdf):
+    """
+    - 교보문고에서 추출한 신규 도서의 text를 rawBookInfo.csv에 저장한다.
+    - 도서별로 추출되는 text 개수가 다르다보니 도서별 column 개수 차이가 크다.
+    - 도서별 추출 된 column 개수가 db에 설정한 column 개수보다 많아질 수 있으므로 오류 방지차 csv로 저장한다.
+    """
+
+    # -- transform and change column name --#
+    a = list(map(changeStringToList, newdf["keywords"]))
+    newBookInfo = pd.DataFrame(a)
+    newBookInfo.columns = [f"col{i}" for i in range(len(newBookInfo.columns))]
+
+    # -- concat with old one and save --#
+
+    # load a previous file (혹시 파일 잘못된 경우 bookinfo12.csv로 백업 해놨음)
+    bookInfo = pd.read_csv("backend/assets/dodomoa/rawBookInfo.csv", index_col=0)
+
+    # concat new items with previous items
+    concatNewBookInfo = pd.concat([bookInfo, newBookInfo])
+
+    # -- drop duplicates by ISBN --#
+    concatNewBookInfo["col1"] = concatNewBookInfo["col1"].astype(int)
+    concatNewBookInfo = concatNewBookInfo.drop_duplicates(subset="col1")
+
+    # -- save --#
+    concatNewBookInfo.to_csv("backend/assets/dodomoa/rawBookInfo.csv")
+
+    return None
 
 
-# Transform Functions
+# extract updated books of each library
+def extract(date: str) -> pd.DataFrame:
+    """
+    - 이 함수를 실행하면 extract 과정이 진행된다.
+    - 도서 정보를 수집한 다음 db 저장된 도서리스트와 비교한 뒤 db에 없는 새로운 도서만 추출한다.
+    - 새롭게 추출된 도서 정보를 크롤링 한다.
+    """
+    rawbookinfo = extractAllLibBooksMultiThread(date)
+    df = rawbookinfo.drop_duplicates(subset="ISBN")
+
+    # -- load bookinfo in DB --#
+    cursor.execute("SELECT ISBN FROM backend_dodomoabookinfo")
+    result = cursor.fetchall()
+    libinfo = pd.DataFrame(result)
+
+    # -- compare extracted book info with previous book info and get new books   --#
+
+    # extract ISBNs of new books and compare them with previous books
+    ISBNs = df["ISBN"].tolist()
+    BM = np.in1d(ISBNs, libinfo["ISBN"])
+
+    # extract new book's info by crowaling kyobobooks site
+    ISBNs = df[~BM]["ISBN"]
+    docs = extractKyoboMultiThread(ISBNs, thread_num=10)
+
+    # merge the extracted texts with book info
+    orderlist = [i[1] for i in docs]
+    k = pd.DataFrame([orderlist, docs]).T
+    k.columns = "ISBN", "keywords"
+
+    # make them as a dataframe
+    newdf = df[~BM]
+    newdf = newdf.merge(k, left_on="ISBN", right_on="ISBN")
+
+    # save texts of newdf as a csv format
+    saveText(newdf)  # return None
+
+    return rawbookinfo, newdf
 
 
-def findEng(text: str) -> str:
+# -- Transform Functions --#
+"""
+Transfrom 절차 설명
+"""
+
+
+def findAlphabet(text: str) -> str:
+    """
+    - 알파벳을 추출한다.
+    """
     # han = re.findall(u'[\u3130-\u318F\uAC00-\uD7A3]+', text)
-    eng = re.findall("[a-zA-Z]+", text)
-    return eng
+    alpha = re.findall("[a-zA-Z]+", text)
+    return alpha
 
 
 def removeStopwords(text: list, stopwords: list) -> str:
-    # text = list(filter(None, doc.split(" ")))
+    """
+    - stopwords를 제거한다.
+    """
+
     word = [word for word in text if word not in stopwords]
     result = " ".join(word)
     return result
 
 
-### 최신버전
 def extractKeywords(doc: str, stopwords: list, keyBertModel) -> list:
     """
-    반복적으로 모델을 불러와야하는 문제를 개선하기 위해 변수에 model을 넣었음.
-    모델을 미리 불러와야 한다.
-    리턴 값으로 keyword를 반환함.
+    keyBert로 keyWord를 추출하는 절차
+    사전 학습된 모델을 사용하기 때문에 개별 도서의 형태소를 넣으면 키워드가 추출된다.
+    1. okt로 형태소 분석
+    2. stopwords 제거
+    3. okt에서 추출한 영문 키워드는 keyBert를 거치지 않고 저장된다.
+       CS 용어가 모두 영문이다보니 도서의 키워드를 파악할 때 영문이 중요하다.
+       사용자가 영문으로 검색할 때 대비용이기도 하다.
+    4. 20개 한글 키워드가 추출되며 영문 키워드 개수에 따라 도서 별 총 키워드 개수는 달라진다.
     """
     doc: str = (
         re.sub("\d[.]|\d|\W|[_]", " ", doc)
@@ -286,8 +332,8 @@ def extractKeywords(doc: str, stopwords: list, keyBertModel) -> list:
     removedoc: str = removeStopwords(text, stopwords)
 
     # 문서 정보 추출
-    hannanum = Hannanum()
-    hanNouns: list = hannanum.nouns(removedoc)
+    Okt = Okt()
+    hanNouns: list = Okt.nouns(removedoc)
     words: str = " ".join(hanNouns)
 
     docResult: list = keyBertModel.extract_keywords(
@@ -317,7 +363,7 @@ def extractKeywords(doc: str, stopwords: list, keyBertModel) -> list:
     keyWords = list(filter(lambda a: a if len(a) > 1 else None, keyWords))
 
     engList = (
-        pd.DataFrame(findEng(removedoc))
+        pd.DataFrame(findAlphabet(removedoc))
         .value_counts()
         .sort_values(ascending=False)[:20]
         .index.tolist()
@@ -330,129 +376,183 @@ def extractKeywords(doc: str, stopwords: list, keyBertModel) -> list:
     return result
 
 
-def transform(extract: tuple, keyBertModel) -> pd.DataFrame:
-    df: pd.DataFrame = extract[0]
-    docs: list = extract[1]
+def transformkeyBert(newdf: pd.DataFrame, keyBertModel) -> pd.DataFrame:
+    """
+    - 도서 별로 키워드를 추출한다.
+    - extractKeywords를 활용한다.
+    """
 
-    stopwords = pd.read_csv("./data/stopwords.csv").T.values.tolist()[0]
-    # keyBertModel = KeyBERT("paraphrase-multilingual-MiniLM-L12-v2")
+    stopwords = pd.read_csv("backend/assets/dodomoa/englist.csv").T.values.tolist()[0]
 
+    # keywords before extracting
+    docs = newdf["keywords"]
+
+    # extract keywords
     keywords = []
     for doc in docs:
         doc = "".join(doc)
         val: list = extractKeywords(doc, stopwords=stopwords, keyBertModel=keyBertModel)
         keywords.append(val)
 
+    # bookinfo without keywords
+    df = newdf.drop(columns=["keywords"])
+
+    # merge result to df
     df["keywords"] = keywords
 
     return df
 
 
-# TransformerFunctions 끝
-
-## 예전버전(삭제용)
-def bookInfoExtraction(doc: str, stopwords: list, model) -> list:
+# change rows to lists and join them in a string
+def mergeListToString(item: pd.Series):
     """
-    반복적으로 모델을 불러와야하는 문제를 개선하기 위해 변수에 model을 넣었음.
-    모델을 미리 불러와야 한다.
-    리턴 값으로 keyword를 반환함.
+    - list를 하나의 str로 바꾼다.
+    - Okt 추출에 알맞은 형태로 바꾸기 위해서 사용한다.
     """
-    start_in = time.time()
-    doc: str = (
-        # re.sub("[_-]|\d[.]|\d|[▶★●]", "", doc)
-        re.sub("\d[.]|\d|\W|[_]", " ", doc)
-        .replace("머신 러닝", "머신러닝")
-        .replace("인공 지능", "인공지능")
-    )
-    text = list(filter(None, doc.split(" ")))
-    removedoc = removeStopwords(text, stopwords)
+    wordList = item.astype(str).tolist()
+    str_list = [re.sub("\d", "", str(a)) for a in wordList]
+    str_list = list(filter(None, str_list))
+    result = " ".join(str_list)
+    return result
 
-    # 문서 정보 추출
-    hannanum = Hannanum()
-    hanNouns = hannanum.nouns(removedoc)
-    vect = CountVectorizer(ngram_range=(2, 2))
-    words = " ".join(hanNouns)
-    count = vect.fit([words])
-    candidate = count.get_feature_names_out()
 
-    doc_embedding = model.encode([removedoc])
-    candidate_embeddings = model.encode(candidate)
-    result: list = mmr(
-        doc_embedding, candidate_embeddings, candidate, top_n=20, diversity=0.2
-    )
+def trainW2V():
+    """
+    - extract 단계에서 저장한 csv를 활용해 word2vec을 학습한다.
+    - 형태소 분석 단계를 거쳐 학습한 뒤 w2v로 저장된다.
+    """
+    # load items to make same condtion of rows
+    bookinfo = pd.read_csv("backend/assets/dodomoa/rawBookInfo.csv", index_col=0)
 
-    items = []
-    for item in result:
-        items.extend(item.split(" "))
+    # load corpus analyzer
+    okt = Okt()
 
-    # Stopwords remove
-    items = removeStopwords(items, stopwords)
-    hanNouns = removeStopwords(hanNouns, stopwords)
+    # iterate all rows of bookinfo
+    wordsList = [mergeListToString(i[1]) for i in bookinfo.iterrows()]
+    print("Complete wordsList Load!!")
 
-    bertInfo = pd.DataFrame(items.split(" "))
-    keyWordInfo = pd.DataFrame(hanNouns.split(" "))
+    # analyze corpus
+    print("konelpy 실행 중... 평균 9분 소요")
+    konlpyWords = list(map(lambda x: okt.nouns(x), wordsList))
+    print("Complete konlpyWords")
 
-    keyWords = (
-        pd.concat([bertInfo, keyWordInfo], axis=0)
-        .groupby(by=0)
-        .size()
-        .sort_values(ascending=False)
-        .index.tolist()
+    # train Word2vec
+    embedding_model = Word2Vec(
+        sentences=konlpyWords, window=2, min_count=50, workers=7, sg=1
     )
 
-    keyWords = list(filter(lambda a: a if len(a) > 1 else None, keyWords))
-    # engList = pd.DataFrame(findEng(doc)).value_counts().sort_values(ascending=False)[:5]
-    return keyWords[:20]
+    # save
+    embedding_model.wv.save_word2vec_format("w2v")
+
+    return None
 
 
-def mmr(doc_embedding, candidate_embeddings, words, top_n, diversity):
-    start_in = time.time()
-    # 문서와 각 키워드들 간의 유사도가 적혀있는 리스트
-    word_doc_similarity = cosine_similarity(candidate_embeddings, doc_embedding)
-    # 각 키워드들 간의 유사도
-    word_similarity = cosine_similarity(candidate_embeddings)
+# -- Load Function --#
+"""
+Load 소개
+"""
 
-    # 문서와 가장 높은 유사도를 가진 키워드의 인덱스를 추출.
-    # 만약, 2번 문서가 가장 유사도가 높았다면
-    # keywords_idx = [2]
-    keywords_idx = [np.argmax(word_doc_similarity)]
 
-    # 가장 높은 유사도를 가진 키워드의 인덱스를 제외한 문서의 인덱스들
-    # 만약, 2번 문서가 가장 유사도가 높았다면
-    # ==> candidates_idx = [0, 1, 3, 4, 5, 6, 7, 8, 9, 10 ... 중략 ...]
-    candidates_idx = list(range(0, len(words)))
-    candidates_idx.remove(keywords_idx[0])
+def load(rawbookinfo, newdf, dfWithKeywords):
+    """
+    - rawbookinfo = 정보나루 API에서 추출한 도서관 별 도서 데이터
+    - newdf = 기존 db에 없는 새로운 도서 목록
+    - dfwithkeywords = 새로운 도서 목록의 keyword
+    - rawbookinfo, newdf, dfwithkeywords는 각각 table에 저장된다.
 
-    # 최고의 키워드는 이미 추출했으므로 top_n-1번만큼 아래를 반복.
-    # ex) top_n = 5라면, 아래의 loop는 4번 반복됨.
-    for _ in range(top_n - 1):
-        candidate_similarities = word_doc_similarity[candidates_idx, :]
-        target_similarities = np.max(
-            word_similarity[candidates_idx][:, keywords_idx], axis=1
-        )
+    """
 
-        # MMR을 계산
-        mmr = (
-            1 - diversity
-        ) * candidate_similarities - diversity * target_similarities.reshape(-1, 1)
-        mmr_idx = candidates_idx[np.argmax(mmr)]
+    from sqlalchemy import create_engine
 
-        # keywords & candidates를 업데이트
-        keywords_idx.append(mmr_idx)
-        candidates_idx.remove(mmr_idx)
+    db_connection_str = "mysql+pymysql://root@localhost:3306/dash_test"
+    db_connection = create_engine(db_connection_str)
 
-    return [words[idx] for idx in keywords_idx]
+    ###### backend_dodomoalibinfo
+    """
+    Libinfo has `ISBN` and `지역` column.
+
+    This table is used for searching books of libraries that user selects .
+    ISBN is id of books, so it is easy to get info at other tables
+    """
+
+    # select ISBN and 지역 column of rawbookinfo
+    booklist = rawbookinfo[["ISBN", "지역"]]
+
+    # save to backend_dodomoalibinfo table
+    booklist.to_sql(
+        name="backend_dodomoalibinfo",
+        con=db_connection,
+        if_exists="append",
+        index=False,
+    )
+
+    ###### backend_dodomoabookinfo
+    """
+    Bookinfo has `도서명`,`저자`,`출판사`,`ISBN`,`주제분류번호`,`등록일자`,`이미지주소` column.
+
+    This has books of all libraries.
+    """
+    backend_dodomoabookinfo = newdf[
+        ["도서명", "저자", "출판사", "ISBN", "주제분류번호", "등록일자", "이미지주소"]
+    ]
+
+    backend_dodomoabookinfo["출판사"] = backend_dodomoabookinfo["출판사"].fillna("-")
+    backend_dodomoabookinfo["주제분류번호"] = "00" + backend_dodomoabookinfo["주제분류번호"].astype(
+        str
+    )
+
+    # save to backend_dodomoabookinfo table
+    backend_dodomoabookinfo.to_sql(
+        name="backend_dodomoabookinfo",
+        con=db_connection,
+        if_exists="append",
+        index=False,
+    )
+
+    ###### backend_dodomoakeyword2
+    """
+    Keyword2 has `ISBN` and `keywords` column.
+
+    all keywords are joined and saved as a string.
+    keywords column has fulltext index
+    This table returns ISBNs that match with user search keywords.
+    """
+
+    backend_dodomoakeyword2 = dfWithKeywords[["ISBN", "keywords"]]
+    backend_dodomoakeyword2["keywords"] = list(
+        map(lambda x: " ".join(x), backend_dodomoakeyword2["keywords"])
+    )
+
+    backend_dodomoakeyword2.columns = ["ISBN", "keyword"]
+
+    # save to backend_dodomoakeyword2 table
+    backend_dodomoakeyword2.to_sql(
+        name="backend_dodomoakeyword2",
+        con=db_connection,
+        if_exists="append",
+        index=False,
+    )
+    return None
 
 
 if __name__ == "__main__":
 
-    bookInfo = pd.read_parquet("./data/bookInfo.parquet")
-    stopwords = pd.read_csv("./data/stopwords.csv").T.values.tolist()[0]
+    # load the model
     keyBertModel = KeyBERT("paraphrase-multilingual-MiniLM-L12-v2")
-    text = bookInfo.iloc[0].dropna().astype(str).tolist()
 
-    text = " ".join(text)
+    # connect to mysql
+    conn = pymysql.connect(
+        host="localhost", port=int(3306), user="root", passwd="", db="dash_test"
+    )
+    cursor = conn.cursor(pymysql.cursors.DictCursor)
 
-    result = extractKeywords(text, stopwords, keyBertModel)
+    # Extract
+    date = date.today().strftime("%Y-%m-%d")
+    rawbookinfo, newdf = extract(date)
 
-    print(result)
+    # transform
+    dfWithKeywords = transformkeyBert(newdf, keyBertModel)
+    trainW2V()  # no return
+
+    # Load
+    load(rawbookinfo, newdf, dfWithKeywords)  # no return

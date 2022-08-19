@@ -1,11 +1,7 @@
-[](https://www.notion.so/df293135bf7a45e8b1db9a9ba6c3a035)
-
-# 도도모아(DoDoMoA)
-
 <div align='center'>
     <img width=600px src='ReadMeImg/mainImg.svg'>
 </div>
-<div align='center' size='20px'> <h2> 도도모아는 서울 교육청 산하 21개 도서관이 보유한 컴퓨터 과학분야의 도서를 추천하는 앱입니다.</h2>
+<div align='center' size='20px'> <h3> 도도모아는 서울교육청 산하 21개 도서관이 보유한 컴퓨터, 데이터 분야의 도서를 추천하는 앱입니다.</h3>
 
 <div align='center'>
 
@@ -13,11 +9,10 @@
 **&nbsp;|&nbsp; [주요 기능](#features)**
 **&nbsp;|&nbsp; [추천 성능](#performance)**
 **&nbsp;|&nbsp; [앱 사용하기](#apps)**
-**&nbsp;|&nbsp; [활용 데이터](#dataset)**
 **&nbsp;|&nbsp; [문제 정의 및 해결](#consideration)**
 **&nbsp;|&nbsp; [코드보기](#code)**
-**&nbsp;|&nbsp; [데이터 파이프라인 소개](#pipeline)**
-**&nbsp;|&nbsp; [도서 추천 알고리즘 소개](#recommandationy)**
+**&nbsp;|&nbsp; [ETL 소개](#pipeline)**
+**&nbsp;|&nbsp; [추천 알고리즘 소개](#recommandationy)**
 
 </div>
 </div>
@@ -40,7 +35,7 @@
 - 도서 제목으로 검색 시 연관성이 높은 도서 추천
 - 영문 키워드로 검색 가능 ex) python, react
 
-## 성능 <a name="performance"></a>
+## 추천 성능 <a name="performance"></a>
 
 </br></br>
 
