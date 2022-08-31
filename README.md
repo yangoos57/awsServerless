@@ -6,7 +6,7 @@
 
 <div align='center' size='20px'> <h3> 도도모아는 서울교육청 산하 20개 도서관이 보유한 컴퓨터, 데이터 분야 도서를 추천하는 앱입니다.</h3>
 
-<hr height=1px/>
+##
 
 <div align='center'>
 
