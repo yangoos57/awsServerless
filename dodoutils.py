@@ -3,14 +3,11 @@ import pandas as pd
 import numpy as np
 from gensim.models import KeyedVectors
 import re
+import os
 
 
-def separateKeyword(words: str) -> list:
-
-    """
-    - 사용자가 검색한 키워드를 개별 단어로 자른뒤 list로 저장.
-    - '파이썬, 자연어' => ['파이썬','자연어']
-    """
+# 문장 들어오면 단어로 잘라주는 메소드
+def separateKeyword(words):
 
     if type(words) != str:
         raise ValueError("str only possible")
@@ -20,13 +17,8 @@ def separateKeyword(words: str) -> list:
     return k
 
 
+# 영문을 한글로 변환
 def transToHan(words: list) -> list:
-
-    """
-    - 영문 키워드를 한글 키워드로 변환한다.
-    - 'matplotlib' => '맷플롯립' / 'python' => '파이썬'
-    """
-
     EngToKorDict = pd.read_csv("backend/assets/dodomoa/englist.csv", index_col=0)
     result = []
     for word in words:
@@ -40,45 +32,31 @@ def transToHan(words: list) -> list:
 
 
 # 영문 문자 리스트 추출
-def findalphabet(text: str) -> str:
-    """
-    - 영문을 추출한다.
-    """
+def findEng(text: str) -> str:
     return re.findall("[a-zA-Z]+", text)
 
 
 # 한글 문자 리스트 추출
 def findHan(text: str) -> str:
-    """
-    - 한글을 추출한다.
-    """
     return re.findall("[\u3130-\u318F\uAC00-\uD7A3]+", text)
 
 
-#
-def searchKeyword(word: list) -> dict:
-    """
-    - 키워드 검색 시 영문->한글 변환 후 한,영,전체 리스트로 추출한다.
-    """
+# 키워드 검색 시 영문->한글 변환 후 한,영,전체 리스트 추출
+def searchKeyword(word: list):
     val = separateKeyword(word)
     keywordItems = transToHan(val)
-    engList = list(filter(lambda x: findalphabet(x), keywordItems))
+    engList = list(filter(lambda x: findEng(x), keywordItems))
     hanList = list(filter(lambda x: findHan(x), keywordItems))
     return dict(eng=engList, han=hanList, all=keywordItems)
 
 
+# 키워드 중복값 찾기
 def findOverlapNum(keywordsOfBook: list, keywordsWord2Vec):
-    """
-    - 키워드가 얼마나 포함됐는지 찾는데 활용된다.
-    """
     return np.in1d(keywordsWord2Vec, keywordsOfBook)
 
 
+# W2V에서 연관성 높은 keyword 20개 추출하기
 def extractKeywords(words: str, num=20) -> list:
-    """
-    - 사용자가 검색한 키워드와 연관성 높은 키워드 20개를 W2V를 활용해 추출한다.
-
-    """
     # 한,영,전체 리스트 추출
     wordDict: dict = searchKeyword(words)
 
@@ -88,10 +66,9 @@ def extractKeywords(words: str, num=20) -> list:
     # 한글 리스트 추출
     hanList = wordDict["han"]
 
-    # 한글로 된 단어가 있으면 w2v에서 키워드 추출 -> 영문인 경우 바로 해당 키워드 검색
+    # 한글로된 단어가 있으면 w2v에서 키워드 추출 -> 영문인 경우 바로 해당 키워드 검색
     if len(hanList) > 0:
-        loaded_model = KeyedVectors.load_word2vec_format("w2v")
-
+        loaded_model = KeyedVectors.load_word2vec_format("backend/w2v")
         # 키워드 단어 불러오기 20개 추출
         keywordsWord2Vec = loaded_model.most_similar(positive=hanList, topn=num)
         Word2VecKeyword = list(map(lambda x: x[0], keywordsWord2Vec))
@@ -105,9 +82,6 @@ def extractKeywords(words: str, num=20) -> list:
 
 
 def changeLibName(libName: list):
-    """
-    frontend에서 받은 도서관명을 db에 저장된 방식으로 변환한다.
-    """
     libdict = {
         "강남도서관": "강남",
         "강동도서관": "강동",
@@ -134,25 +108,34 @@ def changeLibName(libName: list):
     return ",".join(ist)
 
 
-def createBookList(libName: list, userKeywords):
-    """
-    1. frontend에서 도서관 정보(libName)와 키워드(userKeywords)를 받음
-    2. 사용자 검색 키워드 외 20개 키워드 추출
-    3. 사용자가 선택한 조건 및 키워드로 검색 결과 추출
-    4. 도서 검색결과 TOP 50개 선정
+def createBookList(libName: list, userWords):
+    ### 1. frontend로부터 해당 자료를 받음
+    libName = changeLibName(libName)
+    # userWords = '파이썬'
 
-    """
-    # 1. frontend로부터 도서관 정보와 키워드를 받음
-    libName = changeLibName(libName)  # 도서관 이름 변경
+    ### 2. userwords 외에 추가적인 keyword 추출
 
-    # 2. 사용자 검색 키워드 외 20개 키워드 추출
-    keywords = extractKeywords(userKeywords)
+    keywords = extractKeywords(userWords)
 
     # 3. 사용자가 선택한 조건 및 키워드로 검색 결과 추출
 
-    conn = pymysql.connect(
-        host="localhost", port=int(3306), user="root", passwd="", db="dash_test"
-    )
+    ## Group By를 더 빨리해서 검색해야하는 ISBN 개수를 줄였는데 위에있는 쿼리보다 보다 속도가 느림.
+    # 16.7 ms ± 868 µs per loop (mean ± std. dev. of 7 runs, 10 loops each)
+    if os.environ.get("DJANGO_ALLOWED_HOSTS"):
+        # Docker에서 활용
+        conn = pymysql.connect(
+            host="mysql_service",
+            port=int(3306),
+            user="leeway",
+            passwd="1234",
+            db="dash_test",
+        )
+    else:
+        # local에서 활용
+        conn = pymysql.connect(
+            host="localhost", port=int(3306), user="root", passwd="", db="dash_test"
+        )
+
     cursor = conn.cursor(pymysql.cursors.DictCursor)
 
     cursor.execute(
@@ -184,10 +167,10 @@ def createBookList(libName: list, userKeywords):
     result = cursor.fetchall()
     result = pd.DataFrame(result)
 
-    # 4. TOP 50개 선정
+    ### 4. TOP 50개 선정
 
     ## 사용자가 직접 검색한 단어 개수
-    wordsLen = len(userKeywords.split(","))
+    wordsLen = len(userWords.split(","))
 
     ## keyword str to list
     keyList = list(map(lambda x: x.split(" "), result["keyword"]))

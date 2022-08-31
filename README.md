@@ -10,33 +10,28 @@
 
 <div align='center'>
 
-**[프로젝트 진행 계기](#introduction)**
-**&nbsp;|&nbsp; [기능](#features)**
-**&nbsp;|&nbsp; [추천 성능](#performance)**
-**&nbsp;|&nbsp; [앱 사용하기](#apps)**
-**&nbsp;|&nbsp; [문제정의 및 해결](#consideration)**
-**&nbsp;|&nbsp; [코드](#code)**
-**&nbsp;|&nbsp; [머신러닝 파이프라인](#pipeline)**
-**&nbsp;|&nbsp; [도서 검색](#recommandationy)**
+**[프로젝트 진행 배경](#introduction)**
+**&nbsp;•&nbsp; [추천 성능](#performance)**
+**&nbsp;•&nbsp; [앱 사용하기](#apps)**
+**&nbsp;•&nbsp; [문제정의 및 해결](#consideration)**
+**&nbsp;•&nbsp; [코드](#code)**
+**&nbsp;•&nbsp; [머신러닝 파이프라인 소개](#pipeline)**
+**&nbsp;•&nbsp; [도서 검색 단계 소개](#recommandationy)**
 
 </div>
+</div>
+
+<br/>
+
+<div>
+    <img width=900px src='ReadMeImg/screenshot.png'>
 </div>
 
 <br/>
 
 ## 프로젝트 진행 배경 <a name="introduction"></a>
 
-평소 도서관에서 데이터 분야의 책을 빌릴때면 원하는 도서를 찾는데 어려움이 있었습니다. 도서 검색으로는 원하는 내용이 포함된 책을 찾는데 한계가 있었으며 도서 분류 기준이 명확하지 않아 같은 분야임에도 여러 책장에 분산되어 있어 찾는데 어려움이 있었습니다. 원하는 분야의 책을 간편하게 찾기 위해 해당 프로젝트를 기획했습니다.
-
-<br/>
-
-## 기능 <a name="features"></a>
-
-- 검색 키워드 기반 관련성 높은 도서 추천
-- 영문으로도 검색 가능 ex) python, react
-<div>
-    <img width=900px src='ReadMeImg/screenshot.png'>
-</div>
+평소 컴퓨터, 데이터 분야의 책을 빌릴때면 원하는 도서를 찾는데 어려움이 있었습니다. 도서 검색으로는 찾고자 하는 분야를 찾는데 한계가 있었으며 도서 분류 기준이 명확하지 않아 같은 분야임에도 여러 책장에 분산되어 직접 찾는 방법에도 어려움이 있었습니다. 이러한 불편함을 해결하기 위해 NLP 기반 도서 검색 프로젝트를 기획했습니다.
 
 <br/>
 
@@ -75,7 +70,7 @@
 아이콘을 클릭하시면 도도모아 페이지로 이동합니다.
 <br/>
 
-<a href="https://naver.com"><img src="ReadMeImg/dodoIcon.svg"></a>
+<a href="http://yangoos.me/dodo"><img src="ReadMeImg/dodoIcon.svg"></a>
 
 <br/>
 
@@ -89,14 +84,14 @@
 
 <!-- - 하나의 도서를 다수의 키워드로 정의한 뒤, 일치하는 키워드가 많은 순으로 추천하는 방식 구상 -->
 
-- **도서 검색 기능 구현을 위해 도서 핵심 내용을 키워드로 추출할 수 있는 NLP 모델 선정 필요**
+- 도서 검색 기능 구현을 위해 도서 핵심 내용을 키워드로 추출할 수 있는 NLP 모델 선정 필요
 
 **문재해결**
 
-- TF-IDF, Word2Vec, keyBert를 키워드 추출 모델로 고려
-- TF-IDF의 경우 준수한 성능을 보였으나, 다른 도서와 구분하는 키워드를 추출하는 데 목적이 있다보니 텍스트 내 포함된 사람 이름을 키워드로 추출하는 문제 발생
-- Word2Vec의 경우 키워드 추출 보다는 단어간 연관성을 정의하는데 특화된 툴이라 판단해 제외
-- keyBert의 경우 개별 문서의 키워드 추출에 특화, 이미 학습된 모델 사용 가능, 파인튜닝 없이도 준수한 추출 성능 검증
+- 키워드 추출 모델로 TF-IDF, Word2Vec, keyBert를 비교
+- TF-IDF의 경우 준수한 성능을 보였으나, 다른 도서와 구분하는 키워드를 추출하는 특성 상 텍스트 내 포함된 사람 이름을 상위 키워드로 추천되는 문제 발생
+- Word2Vec의 경우 키워드 추출 보다는 단어간 연관성을 정의하는데 특화된 툴이라 판단하여 제외
+- keyBert의 경우 개별 문서의 키워드 추출에 특화, 사전 학습된 모델 사용 가능, finetuning 없이도 준수한 추출 성능
 - **효율성과 성능을 모두 갖춘 keyBert를 키워드 추출 모델로 선정**
 
 <br/>
@@ -105,28 +100,27 @@
 
 **문제정의**
 
-- 사용자가 검색한 단어 수에 따라 검색 성능 차이 발생
 - 하나 또는 두 개의 키워드로 검색할 경우, 수백권의 도서가 일치됨에 따라 우선순위 선정에 어려움 존재
+- 키워드 개수에 상관없이 일관된 검색 성능 유지 필요
 
 **문제해결**
 
-- word2vec 활용 검색 단어와 연관성이 높은 키워드를 추출해 도서 검색 시 활용
-- `파이썬` 검색 시 코사인 유사도가 높은 키워드(`주피터`, `맷플롯립`, `넘파이`, `판다스` 등)를 추출해 도서 검색에 활용
-- 검색 단어와 W2V 추출 단어 간 중요도를 점수로 표현, 도서별 키워드가 포함된 점수를 합계하여 우선순위 선정
+- word2vec 활용 검색 단어와 연관성이 높은 키워드를 추출해 도서 검색에 활용
+- 검색 단어와 W2V 추출 단어 간 중요도를 점수로 표현, 키워드 점수를 합계하여 우선순위 선정
 
 <br/>
 
 ## 코드 <a name="code"></a>
 
-링크를 클릭하시면 코드 파일로 이동합니다. 프론트엔드의 경우 페이지 설명란에 파일별 기능을 정리했습니다.
+링크를 클릭하시면 코드를 확인하실 수 있습니다.
 
-- <a href="https://github.com/yangoos57/dodomoa/blob/main/etl.py">**머신러닝 파이프라인**</a>
-- <a href="https://github.com/yangoos57/dodomoa/blob/main/dodoutils.py" >**백엔드**</a>
+- <a href="https://github.com/yangoos57/dodomoa/blob/main/dodoPipeline.py">**머신러닝 파이프라인**</a>
+- <a href="https://github.com/yangoos57/dodomoa/blob/main/dodoUtils.py" >**백엔드**</a>
 - <a href="https://github.com/yangoos57/seoulBikeProject/tree/main/frontend/src/components/dodomoa">**프론트엔드**</a>
 
 <br/>
 
-## 머신러닝 파이프라인 <a name="pipeline"></a>
+## 머신러닝 파이프라인 소개 <a name="pipeline"></a>
 
 <div align='center'>
     <img width=800px src='ReadMeImg/MLpipeline.png'>
@@ -151,7 +145,7 @@
 
 <br/><br/>
 
-## 도서 검색 <a name="recommandation"></a>
+## 도서 검색 단계 소개 <a name="recommandation"></a>
 
 <div>
     <img width=900px src='ReadMeImg/recom.png'>
@@ -175,8 +169,10 @@
 
 - 일치하는 키워드가 많은 도서일수록 높은 순위로 추천
 - 검색 단어와 Word2Vec에서 추출한 키워드의 중요도가 다르기 때문에 사용자 검색 키워드는 3점, 추출 키워드는 1점으로 계산
-- `파이썬`, `자연어` 검색 시, `딥러닝`, `데이터분석`, `파이토치` , `품사` 등 연관 키워드 추출
-- `파이썬`, `자연어`, `딥러닝` 키워드를 보유한 도서 A는 파이썬, 자연어가 검색 키워드이므로 각 3점, 딥러닝은 추출 키워드이므로 1점, 총 7점, `딥러닝`, `데이터분석`, `파이토치` 키워드를 보유한 도서 B는 모두 추출 키워드이므로 3점 부여
+- Ex) `파이썬`, `자연어` 검색 시, `딥러닝`, `데이터분석`, `파이토치` , `품사` 등 연관 키워드 추출
+- `파이썬`, `자연어`, `딥러닝` 키워드를 보유한 도서 A는 파이썬, 자연어가 사용자 검색 키워드이므로 각 3점, 딥러닝은 추출 키워드이므로 1점, 총 7점, `딥러닝`, `데이터분석`, `파이토치` 키워드를 보유한 도서 B는 모두 추출 키워드이므로 3점 부여
 - 점수가 높은 A 도서가 B 도서보다 상위에 추천
 
+<br/>
+<hr/>
 <br/>

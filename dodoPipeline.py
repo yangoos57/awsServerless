@@ -464,7 +464,7 @@ def load(rawbookinfo, newdf, dfWithKeywords):
 
     from sqlalchemy import create_engine
 
-    db_connection_str = "mysql+pymysql://root@localhost:3306/dash_test"
+    db_connection_str = "mysql+pymysql://root@localhost:3306/dash"
     db_connection = create_engine(db_connection_str)
 
     ###### backend_dodomoalibinfo
