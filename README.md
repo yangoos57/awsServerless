@@ -11,20 +11,14 @@
 <div align='center'>
 
 **[프로젝트 진행 배경](#introduction)**
-**&nbsp;•&nbsp; [추천 성능](#performance)**
-**&nbsp;•&nbsp; [앱 사용하기](#apps)**
-**&nbsp;•&nbsp; [문제정의 및 해결](#consideration)**
-**&nbsp;•&nbsp; [코드](#code)**
-**&nbsp;•&nbsp; [머신러닝 파이프라인 소개](#pipeline)**
-**&nbsp;•&nbsp; [도서 검색 단계 소개](#recommandationy)**
+**&nbsp;|&nbsp; [검색 성능](#performance)**
+**&nbsp;|&nbsp; [앱 사용하기](#apps)**
+**&nbsp;|&nbsp; [문제정의 및 해결](#consideration)**
+**&nbsp;|&nbsp; [코드](#code)**
+**&nbsp;|&nbsp; [머신러닝 파이프라인 소개](#pipeline)**
+**&nbsp;|&nbsp; [도서 검색 단계 소개](#recommandationy)**
 
 </div>
-</div>
-
-<br/>
-
-<div>
-    <img width=900px src='ReadMeImg/screenshot.png'>
 </div>
 
 <br/>
@@ -32,6 +26,10 @@
 ## 프로젝트 진행 배경 <a name="introduction"></a>
 
 평소 컴퓨터, 데이터 분야의 책을 빌릴때면 원하는 도서를 찾는데 어려움이 있었습니다. 도서 검색으로는 찾고자 하는 분야를 찾는데 한계가 있었으며 도서 분류 기준이 명확하지 않아 같은 분야임에도 여러 책장에 분산되어 직접 찾는 방법에도 어려움이 있었습니다. 이러한 불편함을 해결하기 위해 NLP 기반 도서 검색 프로젝트를 기획했습니다.
+
+<div>
+    <img width=900px src='ReadMeImg/screenshot.png'>
+</div>
 
 <br/>
 
@@ -70,7 +68,7 @@
 아이콘을 클릭하시면 도도모아 페이지로 이동합니다.
 <br/>
 
-<a href="http://yangoos.me/dodo"><img src="ReadMeImg/dodoIcon.svg"></a>
+<a href="http://yangoos.me/dodo"><img src="ReadMeImg/Icon.svg"></a>
 
 <br/>
 
@@ -115,7 +113,7 @@
 링크를 클릭하시면 코드를 확인하실 수 있습니다.
 
 - <a href="https://github.com/yangoos57/dodomoa/blob/main/dodoPipeline.py">**머신러닝 파이프라인**</a>
-- <a href="https://github.com/yangoos57/dodomoa/blob/main/dodoUtils.py" >**백엔드**</a>
+- <a href="https://github.com/yangoos57/dodomoa/blob/main/dodoutils.py" >**백엔드**</a>
 - <a href="https://github.com/yangoos57/seoulBikeProject/tree/main/frontend/src/components/dodomoa">**프론트엔드**</a>
 
 <br/>
