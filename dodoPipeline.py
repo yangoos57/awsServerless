@@ -15,10 +15,14 @@ import re
 
 
 # -- Extract Functions --#
+
+
 def loadLibBook(libCode: int, startDate: str) -> pd.DataFrame:
     """
-    - 도서관 정보나루 API에서 도서관의 장서 데이터를 불러온다.
-    - extractAllLibBooksMultiThread에서 사용된다.
+
+    도서관 정보나루 API에서 도서관의 장서 데이터를 불러온다.
+    해당 함수는 extractAllLibBooksMultiThread에서 사용된다.
+
     """
     libname = {
         111003: "강남",
@@ -88,8 +92,10 @@ def loadLibBook(libCode: int, startDate: str) -> pd.DataFrame:
 ##최신버전
 def extractAllLibBooksMultiThread(startDate: str, thread_num: int = 10) -> pd.DataFrame:
     """
-    - loadLibBook를 multithread로 구현해서 Extract 속도를 향상시켰다.
-    - queue 와 thread library를 사용했다.
+
+    loadLibBook를 multithread로 구현해서 Extract 속도를 향상시켰다.
+    queue 와 thread library를 사용했다.
+
     """
 
     q = Queue()
@@ -145,9 +151,11 @@ def extractAllLibBooksMultiThread(startDate: str, thread_num: int = 10) -> pd.Da
 
 def extractKyobo(ISBN: int) -> list:
     """
-    - 새롭게 확보한 도서의 데이터를 교보문고에서 크롤링한다.
-    - 목차, 도서소개, 추천사 등 가용한 텍스트 모두를 수집한다.
-    - kyoboSaveMultiThread에서 사용된다.
+
+    새롭게 확보한 도서의 데이터를 교보문고에서 크롤링한다.
+    목차, 도서소개, 추천사 등 가용한 텍스트 모두를 수집한다.
+    해당 함수는 kyoboSaveMultiThread에서 사용된다.
+
     """
     kyoboUrl = f"http://www.kyobobook.co.kr/product/detailViewKor.laf?ejkGb=KOR&mallGb=KOR&barcode={ISBN}"
     kyoboHtml = requests.get(kyoboUrl)
@@ -179,9 +187,10 @@ def extractKyobo(ISBN: int) -> list:
 # 최신버전
 def extractKyoboMultiThread(ISBNs: list, thread_num: int = 10) -> list:
     """
-    - kyobosave를 multithread로 구현해서 Extract 속도를 향상시켰다.
-    - 목차, 도서소개, 추천사 등 가용한 텍스트 모두를 수집한다.
-    - 수집 된 리스트는 형태소분석을 거쳐 w2v학습과 keyBert 키워드 추출에 활용된다.
+
+    kyobosave를 multithread로 구현해서 Extract 속도를 향상시켰다.
+    수집 된 리스트는 형태소분석을 거쳐 w2v학습과 keyBert 키워드 추출에 활용된다.
+
     """
     result: list = []
 
@@ -211,17 +220,21 @@ def extractKyoboMultiThread(ISBNs: list, thread_num: int = 10) -> list:
 
 def changeStringToList(strList):
     """
-    - dataframe안에 list를 통으로 넣으면 str으로 저장된다.
-    - ast 라이브러리를 쓰면 원래 ㅣist 이지만 str 타입으로 표현된 값을 다시 list 타입으로 바꿔준다.
+
+    dataframe안에 list를 통으로 넣으면 str으로 저장된다.
+    ast 라이브러리를 쓰면 원래 ㅣist 이지만 str 타입으로 표현된 값을 다시 list 타입으로 바꿔준다.
+
     """
     return ast.literal_eval(strList)
 
 
 def saveText(newdf):
     """
-    - 교보문고에서 추출한 신규 도서의 text를 rawBookInfo.csv에 저장한다.
-    - 도서별로 추출되는 text 개수가 다르다보니 도서별 column 개수 차이가 크다.
-    - 도서별 추출 된 column 개수가 db에 설정한 column 개수보다 많아질 수 있으므로 오류 방지차 csv로 저장한다.
+
+    교보문고에서 추출한 신규 도서의 text를 rawBookInfo.csv에 저장한다.
+    도서별로 추출되는 text 개수가 다르다보니 도서별 column 개수 차이가 크다.
+    도서별 추출 된 column 개수가 db에 설정한 column 개수보다 많아질 수 있으므로 오류 방지차 csv로 저장한다.
+
     """
 
     # -- transform and change column name --#
@@ -247,12 +260,13 @@ def saveText(newdf):
     return None
 
 
-# extract updated books of each library
 def extract(date: str) -> pd.DataFrame:
     """
-    - 이 함수를 실행하면 extract 과정이 진행된다.
-    - 도서 정보를 수집한 다음 db 저장된 도서리스트와 비교한 뒤 db에 없는 새로운 도서만 추출한다.
-    - 새롭게 추출된 도서 정보를 크롤링 한다.
+
+    이 함수를 실행하면 extract 과정이 진행된다.
+    도서 정보를 수집한 다음 db 저장된 도서리스트와 비교한 뒤 db에 없는 새로운 도서만 추출한다.
+    새롭게 추출된 도서 정보를 크롤링 한다.
+
     """
     rawbookinfo = extractAllLibBooksMultiThread(date)
     df = rawbookinfo.drop_duplicates(subset="ISBN")
@@ -288,9 +302,6 @@ def extract(date: str) -> pd.DataFrame:
 
 
 # -- Transform Functions --#
-"""
-Transfrom 절차 설명
-"""
 
 
 def findAlphabet(text: str) -> str:
@@ -314,6 +325,7 @@ def removeStopwords(text: list, stopwords: list) -> str:
 
 def extractKeywords(doc: str, stopwords: list, keyBertModel) -> list:
     """
+
     keyBert로 keyWord를 추출하는 절차
     사전 학습된 모델을 사용하기 때문에 개별 도서의 형태소를 넣으면 키워드가 추출된다.
     1. okt로 형태소 분석
@@ -322,6 +334,7 @@ def extractKeywords(doc: str, stopwords: list, keyBertModel) -> list:
        CS 용어가 모두 영문이다보니 도서의 키워드를 파악할 때 영문이 중요하다.
        사용자가 영문으로 검색할 때 대비용이기도 하다.
     4. 20개 한글 키워드가 추출되며 영문 키워드 개수에 따라 도서 별 총 키워드 개수는 달라진다.
+
     """
     doc: str = (
         re.sub("\d[.]|\d|\W|[_]", " ", doc)
@@ -345,7 +358,7 @@ def extractKeywords(doc: str, stopwords: list, keyBertModel) -> list:
     for item in result:
         items.extend(item.split(" "))
 
-    # Stopwords remove
+    # remove Stopwords
     items: str = removeStopwords(items, stopwords)
     hanNouns: str = removeStopwords(hanNouns, stopwords)
 
@@ -378,8 +391,10 @@ def extractKeywords(doc: str, stopwords: list, keyBertModel) -> list:
 
 def transformkeyBert(newdf: pd.DataFrame, keyBertModel) -> pd.DataFrame:
     """
-    - 도서 별로 키워드를 추출한다.
-    - extractKeywords를 활용한다.
+
+    도서별로 키워드를 추출한다.
+    extractKeywords를 활용한다.
+
     """
 
     stopwords = pd.read_csv("backend/assets/dodomoa/englist.csv").T.values.tolist()[0]
@@ -406,8 +421,10 @@ def transformkeyBert(newdf: pd.DataFrame, keyBertModel) -> pd.DataFrame:
 # change rows to lists and join them in a string
 def mergeListToString(item: pd.Series):
     """
-    - list를 하나의 str로 바꾼다.
-    - Okt 추출에 알맞은 형태로 바꾸기 위해서 사용한다.
+
+    list를 하나의 str로 바꾼다.
+    Okt 추출에 알맞은 형태로 바꾸기 위해서 사용한다.
+
     """
     wordList = item.astype(str).tolist()
     str_list = [re.sub("\d", "", str(a)) for a in wordList]
@@ -418,8 +435,10 @@ def mergeListToString(item: pd.Series):
 
 def trainW2V():
     """
-    - extract 단계에서 저장한 csv를 활용해 word2vec을 학습한다.
-    - 형태소 분석 단계를 거쳐 학습한 뒤 w2v로 저장된다.
+
+    extract 단계에서 저장한 csv를 활용해 word2vec을 학습한다.
+    형태소 분석 단계를 거쳐 학습한 뒤 w2v로 저장된다.
+
     """
     # load items to make same condtion of rows
     bookinfo = pd.read_csv("backend/assets/dodomoa/rawBookInfo.csv", index_col=0)
@@ -448,17 +467,15 @@ def trainW2V():
 
 
 # -- Load Function --#
-"""
-Load 소개
-"""
 
 
 def load(rawbookinfo, newdf, dfWithKeywords):
     """
-    - rawbookinfo = 정보나루 API에서 추출한 도서관 별 도서 데이터
-    - newdf = 기존 db에 없는 새로운 도서 목록
-    - dfwithkeywords = 새로운 도서 목록의 keyword
-    - rawbookinfo, newdf, dfwithkeywords는 각각 table에 저장된다.
+
+    rawbookinfo = 정보나루 API에서 추출한 도서관 별 도서 데이터
+    newdf = 기존 db에 없는 새로운 도서 목록
+    dfwithkeywords = 새로운 도서 목록의 keyword
+    rawbookinfo, newdf, dfwithkeywords는 각각 table에 저장된다.
 
     """
 
@@ -469,10 +486,10 @@ def load(rawbookinfo, newdf, dfWithKeywords):
 
     ###### backend_dodomoalibinfo
     """
-    Libinfo has `ISBN` and `지역` column.
 
-    This table is used for searching books of libraries that user selects .
-    ISBN is id of books, so it is easy to get info at other tables
+    backend_dodomoalibinfo 컬럼 = ISBN, 지역
+    사용자가 선택한 도서관의 도서목록을 추출할 때 사용한다.
+
     """
 
     # select ISBN and 지역 column of rawbookinfo
@@ -488,9 +505,9 @@ def load(rawbookinfo, newdf, dfWithKeywords):
 
     ###### backend_dodomoabookinfo
     """
-    Bookinfo has `도서명`,`저자`,`출판사`,`ISBN`,`주제분류번호`,`등록일자`,`이미지주소` column.
 
-    This has books of all libraries.
+    backend_dodomoabookinfo 컬럼 = `도서명`,`저자`,`출판사`,`ISBN`,`주제분류번호`,`등록일자`,`이미지주소`
+
     """
     backend_dodomoabookinfo = newdf[
         ["도서명", "저자", "출판사", "ISBN", "주제분류번호", "등록일자", "이미지주소"]
@@ -511,11 +528,10 @@ def load(rawbookinfo, newdf, dfWithKeywords):
 
     ###### backend_dodomoakeyword2
     """
-    Keyword2 has `ISBN` and `keywords` column.
 
-    all keywords are joined and saved as a string.
-    keywords column has fulltext index
-    This table returns ISBNs that match with user search keywords.
+    backend_dodomoakeyword2 컬럼 = `ISBN`,`keywords`
+    사용자 검색 키워드와 도서 키워드를 비교하기 위해 keywords column에 fulltext index 설정
+
     """
 
     backend_dodomoakeyword2 = dfWithKeywords[["ISBN", "keywords"]]
