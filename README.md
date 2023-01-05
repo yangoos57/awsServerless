@@ -76,8 +76,6 @@
 
 <br/>
 
-## 문제 정의 및 해결 <a name="consideration"></a>
-
 ## 코드 <a name="code"></a>
 
 링크를 클릭하시면 코드를 확인하실 수 있습니다.
