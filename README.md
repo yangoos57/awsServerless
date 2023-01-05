@@ -33,6 +33,15 @@
 
 <br/>
 
+## 앱 사용하기 <a name="performance"></a>
+
+아이콘을 클릭하시면 도도모아 페이지로 이동합니다.
+<br/>
+
+<a href="http://yangoos.me/dodo"><img src="ReadMeImg/Icon.svg"></a>
+
+<br/>
+
 ## Demo <a name="performance"></a>
 
 <div>
@@ -50,7 +59,7 @@
 
 
 
-도도모아 검색 시 .... 27건
+도도모아 검색 시 .... 31건
 
 # 검색어 : 임베딩   |   도서관 : 양천
 --------------------------------------
@@ -64,15 +73,6 @@
 ...
 
 ```
-
-<br/>
-
-## 앱 사용하기 <a name="performance"></a>
-
-아이콘을 클릭하시면 도도모아 페이지로 이동합니다.
-<br/>
-
-<a href="http://yangoos.me/dodo"><img src="ReadMeImg/Icon.svg"></a>
 
 <br/>
 
