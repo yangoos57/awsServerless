@@ -1,6 +1,5 @@
-from sqlalchemy import Column, DateTime, ForeignKey
+from sqlalchemy import Column, DateTime
 from sqlalchemy.dialects.mysql import VARCHAR, CHAR, INTEGER
-from sqlalchemy.orm import relationship
 from db.database import Base
 
 
@@ -18,13 +17,11 @@ class BookInfo(Base):
 
 class BookKeywords(Base):
     __tablename__ = "book_keywords"
-    id = Column(INTEGER, primary_key=True)
-    isbn13 = Column(INTEGER(13), ForeignKey("book_info.isbn13"))
+    isbn13 = Column(INTEGER(13), primary_key=True, auto_increment=False)
     keywords = Column(VARCHAR)
 
 
 class libBooks(Base):
     __tablename__ = "lib_books"
-    id = Column(INTEGER, primary_key=True)
-    isbn13 = Column(INTEGER(13), ForeignKey("book_info.isbn13"))
+    isbn13 = Column(INTEGER(13), primary_key=True, auto_increment=False)
     lib_name = Column(CHAR(3))
