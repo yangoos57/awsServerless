@@ -8,16 +8,50 @@ url = "127.0.0.1"
 user = "root"
 password = 1234
 
-print(user, password)
-
 
 class Deployment:
-    db_dir = f"mysql+pymysql://{user}@{url}:3306"
-    # db_dir = f"mysql+pymysql://{user}:{password}@{url}:3306"
-    db_name = "dodomoa_db"
-    api_auth_key = "7123eacb2744a02faca2508a82304c3bf154bf0b285da35c2faa2b8498b09872"
+    def __init__(self) -> None:
+        self._db_dir = f"mysql+pymysql://{user}@{url}:3306"
+        # db_dir = f"mysql+pymysql://{user}:{password}@{url}:3306"
+        self._db_name = "dodomoa_db"
+        self._api_auth_key = "7123eacb2744a02faca2508a82304c3bf154bf0b285da35c2faa2b8498b09872"
+        self._columns = [
+            "isbn13",
+            "bookname",
+            "authors",
+            "publisher",
+            "class_no",
+            "reg_date",
+            "bookImageURL",
+        ]
+
+    @property
+    def db_dir(self):
+        return self._db_dir
+
+    @property
+    def db_name(self):
+        return self._db_name
+
+    @property
+    def api_auth_key(self):
+        return self._api_auth_key
+
+    @property
+    def columns(self):
+        return self._columns
 
 
 class Test:
-    db_dir = f"mysql+pymysql://{user}:{password}@{url}:3306"
-    db_name = "dodomoa_test"
+    def __init__(self) -> None:
+        self._db_dir = f"mysql+pymysql://{user}:{password}@{url}:3306"
+        # db_dir = f"mysql+pymysql://{user}:{password}@{url}:3306"
+        self._db_name = "dodomoa_test"
+
+    @property
+    def db_dir(self):
+        return self._db_dir
+
+    @property
+    def db_name(self):
+        return self._db_name

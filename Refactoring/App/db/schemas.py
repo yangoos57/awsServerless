@@ -3,29 +3,20 @@ import datetime
 
 
 class BookInfoSchemas(BaseModel):
-    isbn13: int
+    isbn13: str
     bookname: str
-    author: str
+    authors: str
     publisher: str
     class_no: str
-    class_code: str
-    reg_date: datetime.datetime
-    img_url: str
-
-    class Config:
-        orm_mode = str
-
-
-class BookKeywordsSchemas(BaseModel):
-    isbn13: int
-    keywords: str
+    reg_date: str
+    bookImageURL: str
 
     class Config:
         orm_mode = str
 
 
 class LibBookSchemas(BaseModel):
-    isbn13: int
+    isbn13: str
     lib_name: str
 
     class Config:

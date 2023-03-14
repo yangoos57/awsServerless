@@ -1,27 +1,21 @@
 from sqlalchemy import Column, DateTime
-from sqlalchemy.dialects.mysql import VARCHAR, CHAR, INTEGER
+from sqlalchemy.dialects.mysql import VARCHAR, CHAR, INTEGER, DATE
 from db.database import Base
 
 
 class BookInfo(Base):
     __tablename__ = "book_info"
-    isbn13 = Column(INTEGER(13), primary_key=True)
-    bookname = Column(VARCHAR)
-    author = Column(VARCHAR)
-    publisher = Column(VARCHAR)
-    class_no = Column(CHAR(7))
-    class_code = Column(CHAR(10))
-    reg_date = Column(DateTime)
-    img_url = Column(VARCHAR)
+    isbn13 = Column(CHAR(13), primary_key=True, autoincrement=False)
+    bookname = Column(VARCHAR(255))
+    authors = Column(VARCHAR(255))
+    publisher = Column(VARCHAR(255))
+    class_no = Column(CHAR(12))
+    reg_date = Column(DATE)
+    bookImageURL = Column(VARCHAR(255))
 
 
-class BookKeywords(Base):
-    __tablename__ = "book_keywords"
-    isbn13 = Column(INTEGER(13), primary_key=True, auto_increment=False)
-    keywords = Column(VARCHAR)
-
-
-class libBooks(Base):
+class LibBooks(Base):
     __tablename__ = "lib_books"
-    isbn13 = Column(INTEGER(13), primary_key=True, auto_increment=False)
+    id = Column(INTEGER, primary_key=True)
+    isbn13 = Column(CHAR(13), index=True)
     lib_name = Column(CHAR(3))

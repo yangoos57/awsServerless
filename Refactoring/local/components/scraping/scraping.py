@@ -16,6 +16,7 @@ def update_lib_book_data(
     start_date: datetime.date = None,
     end_date: datetime.date = datetime.now().date(),
 ) -> list[tuple[str, map]]:
+    """도서관 정보를 asyncio를 활용해 불러오는 함수"""
 
     auth_key = Deployment().api_auth_key
 
@@ -33,13 +34,8 @@ async def _update_lib_book_data(
     start_date: datetime.date = None,
     end_date: datetime.date = datetime.now().date(),
 ) -> map:
-    """
-    정보나루 API에서 매달 추가 되는 도서 정보를 불러온다.
+    """정보나루 API에서 매달 추가 되는 도서 정보 확보"""
 
-    이때 004 = 전산학, 005 = 프로그래밍, 프로그램, 데이터 인 도서 정보만 선별해서 불러온다.
-
-
-    """
     if not start_date:
         """당일 기준 한 달 전 데이터 확보"""
         start_date = end_date - relativedelta(months=1)
@@ -62,6 +58,11 @@ async def _update_lib_book_data(
 
 
 def _check_cs_data_book(class_num: str) -> bool:
+    """
+    필요한 도서 데이터 추출
+    004 = 전산학,
+    005 = 프로그래밍, 프로그램, 데이터
+    """
     num = class_num["class_no"][:3]
 
     # 004 = 전산학, 005 = 프로그래밍, 프로그램, 데이터
@@ -69,6 +70,8 @@ def _check_cs_data_book(class_num: str) -> bool:
 
 
 def _delete_unnecessary_columns(item: dict) -> dict:
+    """불필요한 column 제거"""
+
     keys = [
         "isbn13",
         "bookname",
@@ -92,9 +95,7 @@ def _delete_unnecessary_columns(item: dict) -> dict:
 
 
 async def scrap_book_info(ISBN: Union[str, int]) -> map:
-    """
-    book_title, book_toc, book_intro, publisher 추출하는 함수
-    """
+    """book_title, book_toc, book_intro, publisher 등의 도서정보 추출"""
 
     url = (
         f"http://www.kyobobook.co.kr/product/detailViewKor.laf?ejkGb=KOR&mallGb=KOR&barcode={ISBN}"
@@ -119,6 +120,7 @@ async def scrap_book_info(ISBN: Union[str, int]) -> map:
 
 
 def _extract_title(soup: BeautifulSoup) -> str:
+    """title 추출"""
     title_soup = soup.find(class_="prod_title")
 
     if title_soup:
@@ -130,6 +132,7 @@ def _extract_title(soup: BeautifulSoup) -> str:
 
 
 def _extract_intro(soup: BeautifulSoup) -> list[str]:
+    """intro 추출"""
     book_intro_soup = soup.find_all("div", "info_text")
 
     if book_intro_soup:
@@ -145,6 +148,7 @@ def _extract_intro(soup: BeautifulSoup) -> list[str]:
 
 
 def _extract_toc(soup: BeautifulSoup) -> list[str]:
+    """toc 추출"""
     book_toc_soup = soup.find(class_="book_contents_item")
 
     if book_toc_soup:
@@ -156,6 +160,7 @@ def _extract_toc(soup: BeautifulSoup) -> list[str]:
 
 
 def _extract_publisher(soup: BeautifulSoup) -> list[str]:
+    """publisher 추출"""
     publisher_soup: str = soup.find(class_="book_publish_review")
 
     if publisher_soup:
@@ -167,6 +172,7 @@ def _extract_publisher(soup: BeautifulSoup) -> list[str]:
 
 
 def _clean_up_book_info(book_info: list[str]) -> list[Union[str, list[str]]]:
+    """불필요한 데이터 전처리"""
     # 한글 알파벳 제외하고 모두 제거
     book_info = (re.sub("[^A-Za-z\u3130-\u318F\uAC00-\uD7A3]", " ", i) for i in book_info)
 
@@ -180,10 +186,7 @@ def _clean_up_book_info(book_info: list[str]) -> list[Union[str, list[str]]]:
 
 
 def scrap_book_info_with_multiprocessing(isbns: list[Union[str, int]]) -> str:
-    """
-    scrap_book_info 모듈을 Processpoolexecutor로 실행하기 위한 함수입니다.
-
-    """
+    """scrap_book_info 함수를 Processpoolexecutor 기반으로 실행"""
     tasks = [scrap_book_info(isbn) for isbn in isbns]
     result = asyncio.run(asyncio.wait(tasks))
     result = list(map(lambda x: x.result(), result[0]))

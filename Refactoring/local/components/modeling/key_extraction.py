@@ -18,9 +18,10 @@ class keywordExtractor:
 
     Parameter
     --------
-    model: Encoder 기반 모델을 사용합니다. 기본으로는 "monologg/koelectra-base-v3-discriminator"를 사용하고 있습니다.
+    - model: Encoder 기반 언어모델을 사용합니다. 기본 값으로 "monologg/koelectra-base-v3-discriminator"를 사용하고 있습니다.
     tokenizer: 해당 모델에 맞는 토크나이저를 사용합니다.
-    dir: 영어 단어 -> 한국어 단어 또는 오탈자 -> 정상 단어로 변환하기 위해 사용하는 파일을 불러옵니다.
+
+    - dir: 영어 단어 -> 한국어 단어 또는 오탈자 -> 정상 단어로 변환하기 위해 사용하는 파일을 불러옵니다.
          ex) python -> 파이썬 || 파이선 -> 파이썬
 
     """
@@ -41,7 +42,7 @@ class keywordExtractor:
         self._update_noun_words()
 
         # logger
-        self.logging = make_logger("check_process.log", "tokenizer")
+        self.logging = make_logger("logs/check_process.log", __name__)
 
     def _update_noun_words(self):
         """Kiwi에 등록되지 않은 단어 추가"""
@@ -54,19 +55,11 @@ class keywordExtractor:
         """
         min_count 이상 집계, 단어 길이 최소 min_length 이상인 단어를 수집합니다.
 
-        키워드 후보 추출 방식
-        ---------------
-        1. series를 list로 전환한다.
-        2. 명사를 추출한다.
-        3. 영어단어를 한글단어로 치환한다.
-        4. 문장 내 출현빈도가 min_count 이하인 단어를 제거한다.
-        5. 단어 길이가 min_lengh 이하인 단어를 제거한다.
-
         parameter
         ---------------
-        doc: 도서정보
-        min_count: 최소 집계 기준
-        min_length: 최소 단어 길이
+        - doc: 도서정보
+        - min_count: 최소 집계 기준
+        - min_length: 최소 단어 길이
 
         """
         raw_data = self._convert_series_to_keyword_list(doc)
@@ -110,7 +103,7 @@ class keywordExtractor:
 
         parameter
         --------
-        doc : 도서 정보를 받습니다.
+        - doc : pd.Series 데이터
         """
         keyword_list = self.extract_keyword_list(doc)
         tokenized_keyword = self.tokenize_keyword(keyword_list)
@@ -185,11 +178,11 @@ class keywordExtractor:
         mean_pooling = sum_embeddings / total_num_of_tokens
         return mean_pooling
 
-    def create_doc_embeddings(self, doc: pd.Series) -> torch.Tensor:
+    def create_doc_embedding(self, doc: pd.Series) -> torch.Tensor:
         """sbert를 활용해 doc_embedding 생성"""
         stringified_doc = self._convert_series_to_str(doc)
         tokenized_doc = self.tokenize_keyword(stringified_doc)
-        return self._create_doc_embeddings(tokenized_doc)
+        return self._create_doc_embedding(tokenized_doc)
 
     def _convert_series_to_str(self, series: pd.Series) -> str:
         """Series에 속한 값을 하나의 str으로 연결"""
@@ -197,14 +190,28 @@ class keywordExtractor:
         series = series.drop(["title", "isbn13"])
         return book_title + " " + " ".join(list(chain(*series.values)))
 
-    def _create_doc_embeddings(self, tokenized_doc):
+    def _create_doc_embedding(self, tokenized_doc):
         """sbert를 활용해 doc_embedding 생성"""
         return self.sbert(**tokenized_doc)["sentence_embedding"]
 
     def extract_keyword(self, docs: pd.DataFrame) -> dict:
+        """
+        도서 데이터를 기반으로 키워드를 추출하는 메서드입니다.
+        클래스 내 create_keyword_list, create_keyword_embedding, create_doc_emeddings를 기반으로 동작합니다.
+
+        Parameter
+        ---------
+        - docs : pd.DataFrame 타입의 데이터이며 column은 [isbn13, title, toc, intro, publisher]이어야 합니다.
+
+        """
+        if docs.columns.tolist() != ["isbn13", "title", "toc", "intro", "publisher"]:
+            raise ValueError(
+                f"{docs.columns.tolist()} doesn't match with ['isbn13', 'title', 'toc', 'intro', 'publisher']"
+            )
+
         process_id = psutil.Process().pid
         keyword_embedding = map(lambda x: self.create_keyword_embedding(x[1]), docs.iterrows())
-        doc_embedding = map(lambda x: self.create_doc_embeddings(x[1]), docs.iterrows())
+        doc_embedding = map(lambda x: self.create_doc_embedding(x[1]), docs.iterrows())
         keyword_list = map(lambda x: self.extract_keyword_list(x[1]), docs.iterrows())
 
         co_sim_score = map(
@@ -220,6 +227,7 @@ class keywordExtractor:
     def _calc_cosine_similarity(
         self, doc_embedding: torch.Tensor, keyword_embedding: torch.Tensor
     ) -> np.array:
+        """단어와 문장 간 코사인 유사도 계산"""
 
         doc_embedding = doc_embedding.detach()
         keyword_embedding = keyword_embedding.detach()
@@ -234,6 +242,7 @@ class keywordExtractor:
     def _filter_top_n_keyword(
         self, keyword_list: list, co_sim_score: np.array, rank: int = 20
     ) -> list:
+        """top_n 키워드 추출"""
         keyword = dict(zip(keyword_list, co_sim_score))
         sorted_keyword = sorted(keyword.items(), key=lambda k: k[1], reverse=True)
         return list(dict(islice(sorted_keyword, rank)).keys())

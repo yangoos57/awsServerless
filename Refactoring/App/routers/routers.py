@@ -2,19 +2,21 @@ from fastapi import APIRouter, Depends, BackgroundTasks, Request
 from fastapi.templating import Jinja2Templates
 from metrics.metrics import update_dashboard
 from db.database import get_db, Base, engine
-from routers.schemas import Data, Result
-from db.cruds import *
+from db.schemas import BookInfoSchemas
+from routers.schemas import *
+import db.cruds as query
 from sqlalchemy.orm import Session
 from configs import Deployment
-from typing import Dict, Union
+from typing import Dict, Union, List
 from uuid import uuid4
 import pandas as pd
 import numpy as np
-import joblib
+from .search import BookSearcher
 
 router = APIRouter()
 Base.metadata.create_all(bind=engine)
-pipe = joblib.load("../models/random_forest.pkl")
+query.upload_data_when_init(db=next(get_db()))
+book_searcher = BookSearcher()
 
 
 @router.get("/health")
@@ -25,55 +27,51 @@ def health() -> Dict[str, str]:
 @router.post("/predict")
 def predict(data: Data, background_task: BackgroundTasks, db: Session = Depends(get_db)):
     # predict data
-    df = pd.DataFrame(data.dict(), columns=Deployment.columns)
-    prediction: np.ndarray = pipe.predict(df)
+    uuid = str(uuid4())
+    user_search = data.dict()["user_search"]
+    book_isbn = book_searcher.extract_recommand_book_isbn(user_search)
 
-    uuid = [str(uuid4()) for _ in range(len(df))]
+    selected_lib = data.dict()["selected_lib"]
+    lib_name_info = query.load_lib_name_info(db, book_isbn, selected_lib)
 
-    def register_items_to_db(df: pd.DataFrame, uuid: List[str]):
-        # create rows in the prediction_table
-        df["id"] = uuid
-        df["Transported_prediction"] = prediction
-        df_dict = df.to_dict(orient="records")
-        register_items(db, df_dict)
+    lib_book_data = pd.DataFrame(lib_name_info)
+    lib_book_data = pd.DataFrame(lib_name_info).groupby(by="isbn13").agg(list).reset_index()
 
-    # process register_items_to_db after responses
-    background_task.add_task(register_items_to_db, df, uuid)
+    book_info = query.load_book_info(db, lib_book_data.isbn13.tolist())
+    book_info_db = pd.DataFrame(book_info)
 
-    return {
-        "model_name": "Random-Forest",
-        "type": "Classifier",
-        "version": "v0.1",
-        "data": {"table_id": uuid, "prediction": prediction.tolist()},
-    }
+    result_df = book_info_db.merge(lib_book_data, on="isbn13")
+    old_idx = result_df.isbn13.get_indexer(book_isbn)
+    print(old_idx)
+    order_rank = np.delete(old_idx, np.where(old_idx == -1), axis=0)
 
+    result_df = result_df.iloc[order_rank].reset_index(drop=True)
+    print(result_df)
 
-@router.post("/result", status_code=201)
-def result(data: List[Result], db: Session = Depends(get_db)):
-    # update Adaptivity_Level in the prediction_table
-    data = [d.dict() for d in data]
-    register_Transported(db, data)
+    # # def register_items_to_db(df: pd.DataFrame, uuid: List[str]):
+    # #     # create rows in the prediction_table
+    # #     df["id"] = uuid
+    # #     df["Transported_prediction"] = prediction
+    # #     df_dict = df.to_dict(orient="records")
+    # #     register_items(db, df_dict)
 
-    return data
+    # # process register_items_to_db after responses
+    # # background_task.add_task(register_items_to_db, df, uuid)
 
-
-@router.get("/dash")
-def dash(request: Request, db: Session = Depends(get_db)):
-    templates = Jinja2Templates(directory="static/metrics")
-
-    # update Dashboard
-    prev = 0
-    num_rows: int = get_num_rows(db)
-    if num_rows - prev > 0:
-        True_Prediction: List(Tuple[bool, bool]) = get_true_and_prediction_col(db)
-        print(True_Prediction)
-        df = pd.DataFrame(True_Prediction)
-        update_dashboard(df)
-        prev = num_rows
-
-    return templates.TemplateResponse("model_metrics.html", {"request": request})
+    # return {
+    #     "user_search": user_search,
+    #     "selected_lib": selected_lib,
+    #     "data": {"table_id": uuid, "result": book_info_sort.to_dict("records")},
+    # }
 
 
-@router.get("/test")
-def dash(request: Request, db: Session = Depends(get_db)):
-    print(test(db))
+@router.post("/update/book-info")
+def test(data: BookInfoSchemas, background_task: BackgroundTasks, db: Session = Depends(get_db)):
+    query.update_db(db, "book_info", data)
+    return {"h": "h"}
+
+
+@router.post("/update/lib-books")
+def test(data: LibBookSchemas, background_task: BackgroundTasks, db: Session = Depends(get_db)):
+    query.update_db(db, "lib_books", data)
+    return {"h": "h"}

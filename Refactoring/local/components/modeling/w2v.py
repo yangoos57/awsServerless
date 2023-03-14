@@ -4,6 +4,7 @@ from itertools import chain
 from collections import Counter
 import pandas as pd
 from typing import Iterable, List
+from logs.utils import make_logger
 
 
 class W2VTrainer:
@@ -13,6 +14,8 @@ class W2VTrainer:
         self.noun_extractor = Kiwi(model_type="knlm")
         self.dir = dir if dir else "../../data/preprocess/eng_han.csv"
         self._update_noun_words()
+
+        self.logging = make_logger("logs/check_process.log", __name__)
 
     def _update_noun_words(self):
         """Kiwi에 등록되지 않은 단어 추가"""
@@ -31,10 +34,12 @@ class W2VTrainer:
         min_length: 학습 데어티에 포함할 단어의 최소 길이를 정의합니다.
 
         """
+        self.logging.info("start create_w2v_data")
         w2v_data = self.create_w2v_data(df, min_length)
+        self.logging.info("start training")
         embedding_model = Word2Vec(sentences=w2v_data, window=2, min_count=30, workers=7, sg=1)
+        self.logging.info("save model")
         embedding_model.wv.save_word2vec_format(dir)
-        print("train finished!!!")
         return None
 
     def create_w2v_data(self, df: pd.DataFrame, min_length: int = 2) -> List[list]:

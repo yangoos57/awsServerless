@@ -1,63 +1,80 @@
 import db.schemas as schema
 import db.table as table
 from sqlalchemy.orm import Session
-from typing import List, Dict, Tuple
+from typing import List, Any, Callable
 from logs.utils import make_logger
+from configs import Deployment
+import pandas as pd
+from sqlalchemy.dialects.mysql import insert
+
 
 logger = make_logger("logs/main.log", __name__)
+dep = Deployment()
+
+table.BookInfo
 
 
-def select_all_items(db: Session, limit: int = 100) -> List[schema.PredictionCreate]:
-    return db.query(table.Prediction).limit(limit).all()
+def load_book_info(db: Session, isbn: List[str]) -> List[schema.BookInfoSchemas]:
+    """사용자 검색 결과에 따른 도서 정보 제공"""
+    x = db.query(table.BookInfo).filter(table.BookInfo.isbn13.in_(isbn)).all()
+    result = [v.__dict__ for v in x]
+    [v.pop("_sa_instance_state", None) for v in result]
+
+    return result
 
 
-def register_item(db: Session, feature: schema.PredictionCreate):
-    feature = table.Prediction(**feature)
-    db.add(feature)
-    db.commit()
-    return feature
-
-
-def register_items(db: Session, features: List[schema.PredictionCreate]):
-    for feature in features:
-        register_item(db=db, feature=feature)
-    return features
-
-
-def select_by_id(db: Session, id: str) -> schema.PredictionCreate:
-    return db.query(table.Prediction).filter(table.Prediction.id == id).first()
-
-
-def register_Transported(db: Session, results: List[Dict[str, str]]):
-    for result in results:
-        values = [x for x in result.values()]
-        item = select_by_id(db=db, id=values[0])
-        item.Transported = values[1]
-        db.commit()
-        # db.refresh(item)
-    return results
-
-
-def delete_items(db: Session, ids: List[str]):
-    for id in ids:
-        db.query(table.Prediction).filter(table.Prediction.id == id).delete()
-
-    return ids
-
-
-def get_num_rows(db: Session) -> int:
-    return db.query(table.Prediction).count()
-
-
-def get_true_and_prediction_col(db: Session, limit: int = 200) -> List[Tuple[bool, bool]]:
-    return (
-        db.query(table.Prediction.Transported, table.Prediction.Transported_prediction)
-        .filter(table.Prediction.Transported != None)
-        .order_by(table.Prediction.Date.desc())
-        .limit(limit)
+def load_lib_name_info(
+    db: Session, isbn: List[str], lib_name: List[str]
+) -> List[schema.LibBookSchemas]:
+    """선택한 도서관 내 추천 장서 보유 여부 제공"""
+    data = (
+        db.query(table.LibBooks.isbn13, table.LibBooks.lib_name)
+        .filter(table.LibBooks.isbn13.in_(isbn))
+        .filter(table.LibBooks.lib_name.in_(lib_name))
         .all()
     )
+    return data
 
 
-def test(db: Session, limit: int = 200) -> List[Tuple[str, str]]:
-    return db.query(table.Prediction.Date).limit(limit).all()
+def update_db(db: Session, table_name: str, features: Any):
+    """매월 도서정보 업데이트 시 활용"""
+    table_dict = dict(lib_books=table.LibBooks, book_info=table.BookInfo)
+    current_table = table_dict[table_name]
+    columns_table = [c.key for c in current_table.__table__.columns]
+
+    duplicated_book_info = pd.DataFrame(features.dict(), columns=columns_table)
+    pure_book_info_df = _eleminate_duplicate(db, current_table, duplicated_book_info)
+
+    if pure_book_info_df.empty:
+        return None
+    else:
+        features = pure_book_info_df.to_dict("records")
+        db.bulk_insert_mappings(current_table, features)
+        db.commit()
+        return features
+
+
+def _eleminate_duplicate(db: Session, current_table: Callable, df: pd.DataFrame) -> pd.DataFrame:
+    """ISBN13을 기준으로 중복된 값 제거"""
+    # 수정필요:LibBook 업데이트 시 isbn13 및 도서관명을 고려해야함
+    existing_isbn_in_db_tuple = (
+        db.query(current_table.isbn13).filter(current_table.isbn13.in_(df.isbn13.tolist())).all()
+    )
+    existing_isbn_in_db = [v[0] for v in existing_isbn_in_db_tuple]
+    non_existing_data_in_db = df[~df["isbn13"].isin(existing_isbn_in_db)]
+    return non_existing_data_in_db
+
+
+def upload_data_when_init(db: Session):
+    """프로그램 처음 시작 시 db 세팅"""
+    table_dict = dict(lib_books=table.LibBooks, book_info=table.BookInfo)
+    for name, current_table in table_dict.items():
+        row_count = db.query(current_table).count()
+        if row_count == 0:
+            print(f"{name} is empty set...")
+            data = pd.read_parquet(f"db/data/{name}.parquet")
+            print(f"Uploading {name}_data")
+            features = data.to_dict("records")
+            db.bulk_insert_mappings(current_table, features)
+            db.commit()
+            print(f"finsihed!!\n")
