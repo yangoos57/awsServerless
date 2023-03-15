@@ -4,5 +4,6 @@
 /practice
 
 .DS_Store
-/Refactoring/components/LibAPI/configs.py
+/Refactoring/local/configs.py
+/Refactoring/local/data/local_data
 /Refactoring/raw_data

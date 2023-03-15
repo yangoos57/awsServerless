@@ -5,6 +5,7 @@ from datetime import datetime
 from itertools import chain
 from typing import Union
 import aiohttp
+import aiofiles
 import asyncio
 import re
 from collections import namedtuple
@@ -104,10 +105,13 @@ async def scrap_book_info(ISBN: Union[str, int]) -> map:
     async with aiohttp.ClientSession(trust_env=True) as session:
         async with session.get(url) as resp:
             html = await resp.read()
+            await asyncio.sleep(0.5)
 
     kyobo_soup = BeautifulSoup(html.decode("utf-8"), "html.parser")
 
     if kyobo_soup.find(class_="prod_title"):
+        await _download_book_cover_img(kyobo_soup, f"data/update/img/{ISBN}.jpg")
+
         book_title: str = _extract_title(kyobo_soup)
         book_publisher: list[str] = _extract_publisher(kyobo_soup)
         book_intro: list[str] = _extract_intro(kyobo_soup)
@@ -169,6 +173,16 @@ def _extract_publisher(soup: BeautifulSoup) -> list[str]:
         publisher = []
 
     return publisher
+
+
+async def _download_book_cover_img(soup: BeautifulSoup, dir: str) -> None:
+    """도서 이미지 다운로드"""
+    async with aiohttp.ClientSession(trust_env=True) as session:
+        url = soup.find(name="meta", property="og:image")["content"]
+        async with session.get(url) as resp:
+            if resp.status == 200:
+                async with aiofiles.open(f"{dir}", "wb") as f:
+                    await f.write(await resp.read())
 
 
 def _clean_up_book_info(book_info: list[str]) -> list[Union[str, list[str]]]:

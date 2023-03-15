@@ -78,3 +78,11 @@ def upload_data_when_init(db: Session):
             db.bulk_insert_mappings(current_table, features)
             db.commit()
             print(f"finsihed!!\n")
+
+
+# def register_items_to_db(df: pd.DataFrame, uuid: List[str]):
+#     # create rows in the prediction_table
+#     df["id"] = uuid
+#     df["Transported_prediction"] = prediction
+#     df_dict = df.to_dict(orient="records")
+#     register_items(db, df_dict)
