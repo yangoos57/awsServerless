@@ -41,13 +41,15 @@ class keywordExtractor:
         self.dir = dir if dir else "../../data/preprocess/eng_han.csv"
         self._update_noun_words()
 
+        # mapper
+        self.eng_han_df = pd.read_csv(dir)
+
         # logger
         self.logging = make_logger("logs/check_process.log", __name__)
 
     def _update_noun_words(self):
         """Kiwi에 등록되지 않은 단어 추가"""
-        eng_han_df = pd.read_csv(self.dir)
-        han_words = eng_han_df
+        han_words = self.eng_han_df
         for val in han_words.kor.values:
             self.noun_extractor.add_user_word(val)
 
@@ -83,14 +85,14 @@ class keywordExtractor:
 
     def _map_english_to_hangeul(self, word_list: list[str]) -> list[str]:
         """영단어를 한국어 단어로 치환"""
-        eng_han_df = pd.read_csv(self.dir).dropna()
-        eng_han_dict = dict(eng_han_df.values)
 
-        def map_eng_to_han(word: str, eng_han_dict: dict) -> str:
-            han_word = eng_han_dict.get(word)
+        converter = dict(self.eng_han_df.dropna().values)
+
+        def map_eng_to_han(word: str) -> str:
+            han_word = converter.get(word)
             return han_word if han_word else word
 
-        return list(map(lambda x: map_eng_to_han(x.lower(), eng_han_dict), word_list))
+        return list(map(lambda x: map_eng_to_han(x.lower()), word_list))
 
     def _eliminate_min_words(self, candidate_keyword, min_count: int = 3):
         """min_count 이상으로 집계되지 않은 단어 제거"""

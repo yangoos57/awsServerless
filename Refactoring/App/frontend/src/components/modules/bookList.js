@@ -1,11 +1,11 @@
 import React from "react";
 
-function bookInfoBox(imgUrl, bookname, authors, libname, classNo) {
+function bookInfoBox(isbn13, bookname, authors, libname, classNo) {
   var a = 0;
   var b = 0;
   var c = 0;
-  window.innerWidth > 575 ? (a = 25) : (a = 23);
-  window.innerWidth > 575 ? (b = 30) : (b = 8);
+  window.innerWidth > 575 ? (a = 25) : (a = 25);
+  window.innerWidth > 575 ? (b = 20) : (b = 8);
   window.innerWidth > 575 ? (c = 30) : (c = 10);
   if (bookname.length > a) {
     bookname = bookname.substring(0, a) + "...";
@@ -16,24 +16,18 @@ function bookInfoBox(imgUrl, bookname, authors, libname, classNo) {
   if (libname.length > c) {
     libname = libname.substring(0, c) + "...";
   }
+
+  var imgUrl = "images/" + isbn13 + ".jpg";
   return (
-    <div className="flex-container justify-content-center py-2 bookListBox">
-      {/* Beige 색 박스 설정 */}
-      <div
-        className="flex-container mx-auto p-2"
-        style={{
-          backgroundColor: "var(--background-dodo-color)",
-          width: "100%",
-          height: "95%",
-          borderRadius: "5px",
-        }}>
+    <div className="flex-container px-3 py-2 bookListBox">
+      <div className="flex-container mx-auto p-1 libBox-card" style={{}}>
         {/* Book Info 배치 : 이미지 35% 나머지 65% */}
-        <div className="me-2" style={{ flexBasis: "30%" }}>
+        <div className="me-2 libBox-card-img">
           <div className="flex-container m-auto">
-            {/* <img style={{ width: "100%", border: "0.3px solid #4F4E4E" }} src={imgUrl} alt="" /> */}
+            <img style={{ width: "80px", height: "100px", border: "0.1px solid #4F4E4E" }} src={imgUrl} alt="" />
           </div>
         </div>
-        <div className="flex-container flex-column" style={{ flexBasis: "70%" }}>
+        <div className="flex-container flex-column libBox-card-text">
           {" "}
           <div className="mb-1 bookTitleInfo">{bookname}</div>
           <div className="bookInfo">저자 : {authors}</div>
@@ -58,7 +52,6 @@ const BookList = ({ item }) => {
           style={{
             paddingRight: "5%",
             flexBasis: "5%",
-            color: "#FFF5EA",
             fontWeight: "bolder",
           }}>
           총 {item.length}건 검색
@@ -70,7 +63,7 @@ const BookList = ({ item }) => {
             className="d-flex flex-column"
             style={{ position: "absolute", overflow: "scroll", height: "100%", width: "100%" }}>
             {item.map((v) => {
-              return bookInfoBox(v.bookImageURL, v.bookname, v.authors, v.lib_name, v.class_no);
+              return bookInfoBox(v.isbn13, v.bookname, v.authors, v.lib_name, v.class_no);
             })}
           </div>
         </div>

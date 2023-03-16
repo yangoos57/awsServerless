@@ -23,38 +23,35 @@ function ResultPage() {
   const [libInfo, setLibInfo] = useState([""]);
   const searchInfo = { keyword: keyword, library: libInfo };
 
-  // get params
   const [searchParams] = useSearchParams();
-  const searchedParams = [...searchParams];
 
-  // lib 정보 가져오기
-  const libVal = searchedParams
-    .filter((e) => {
-      if (e.includes("library")) return e;
-    })
-    .map((e) => {
-      return e[1];
+  useEffect(() => {
+    const searchedParams = [...searchParams];
+    const libValue = searchedParams
+      .filter((e) => {
+        return e.includes("library");
+      })
+      .map((e) => {
+        return e[1];
+      });
+    const libName = libValue.map((e) => {
+      return e.slice(-e.length, -3);
     });
-  //default 값으로 searchParams에서 가지고 온 값 넣기
-  useEffect(() => {
-    setKeyword(searchParams.get("keyword"));
-    setLibInfo(libVal);
-  }, []);
+    const userSearch = searchParams.get("keyword").replace(",", "").split(" ");
 
-  useEffect(() => {
-    keyword[0] !== ""
-      ? axios
-          .post("http://localhost:8000/predict", {
-            user_search: keyword.replace(",", "").split(" "),
-            selected_lib: libInfo.map((e) => {
-              return e.slice(-e.length, -3);
-            }),
-          })
-          .then((res) => {
-            setItem(res.data.result);
-          })
-      : console.log();
-  }, [keyword, libInfo]);
+    setKeyword(searchParams.get("keyword"));
+    setLibInfo(libValue);
+
+    //axios
+    axios
+      .post("/predict", {
+        user_search: userSearch,
+        selected_lib: libName,
+      })
+      .then((res) => {
+        setItem(res.data.result);
+      });
+  }, [searchParams]);
 
   const noSearchResult = () => {
     return (
@@ -74,7 +71,7 @@ function ResultPage() {
         <MiniLib libs={libInfo} checkedInputs={libInfo} setCheckedInputs={setLibInfo} />
       </div>
       <div className="d-flex mx-auto" style={{ flexBasis: "10%", width: "100%" }}>
-        <Search placeholder={searchParams.get("keyword")} setCheckedInputs={setKeyword} values={searchInfo} />
+        <Search placeholder={keyword} setCheckedInputs={setKeyword} values={searchInfo} />
       </div>
       <div className="flex-container mx-auto" style={{ flexBasis: "75%" }}>
         {item[0].bookname === null ? noSearchResult() : <BookList item={item} />}

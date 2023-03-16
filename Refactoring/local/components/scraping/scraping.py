@@ -1,5 +1,5 @@
-from configs import Deployment
 from dateutil.relativedelta import relativedelta
+from configs import Deployment
 from bs4 import BeautifulSoup
 from datetime import datetime
 from itertools import chain
@@ -8,7 +8,6 @@ import aiohttp
 import aiofiles
 import asyncio
 import re
-from collections import namedtuple
 
 
 def update_lib_book_data(

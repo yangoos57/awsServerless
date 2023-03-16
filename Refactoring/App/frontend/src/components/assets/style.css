@@ -3,9 +3,9 @@
     --orange-color : #F2B13D;
     --background-color : #FFF5EA;
     --search-color : #4F4E4E;
-    /* --search-color : #FFF5EA; */
     --libBox-color : #83838383;
-    --resultBox-color : #f1cfac;
+    --resultBox-color :  #f3dbc4;
+    
 }
 
 @font-face {
@@ -132,6 +132,17 @@
 }
 .libBox-names-column{
     flex-basis: 30%;
+}
+.libBox-card{
+    justify-content: space-evenly;
+    border-radius: 5px;
+
+}
+.libBox-card-img{
+    flex-basis: 20%;
+}
+.libBox-card-text{
+    flex-basis: 75%;
 }
 
 
@@ -300,7 +311,7 @@ input:focus::placeholder {
         height: 90%;
     }
     .search-dodo{
-        /* font-size: 1px !important; */
+        font-size: 14px !important;
         
     }
     .libTitle{
@@ -322,7 +333,7 @@ input:focus::placeholder {
         font-size: 17px;
     }
     .bookTitleInfo{
-        font-size: 20px;
+        font-size: 16px;
     }
     .libBox-mini-dodo{
         font-size: 25px;
@@ -335,5 +346,15 @@ input:focus::placeholder {
     }
     .noSearchInfo{
         font-size: 20px;
+    }
+
+    .libBox-card-img{
+        flex-basis: 35%;
+    }
+    .libBox-card-text{
+        flex-basis: 60%;
+    }
+    .bookInfo{
+        font-size: 10px;
     }
 }

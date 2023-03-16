@@ -34,15 +34,12 @@ function CustomInput(v, i, setCheckedInputs, checkedInputs) {
   );
 }
 
-const Label = ({ checkedInputs, setCheckedInputs }) => {
+const LibLabel = ({ checkedInputs, setCheckedInputs }) => {
   // 값 유지시키기
   useEffect(() => {
-    if (checkedInputs.length !== 0) {
-      checkedInputs.map((id) => {
-        var a = document.getElementById(id);
-        a.checked = true;
-      });
-    }
+    checkedInputs.map((e) => {
+      return (document.getElementById(e).checked = true);
+    });
   });
   return (
     <div className="mx-auto libBox-dodo flex-column ">
@@ -72,4 +69,4 @@ const Label = ({ checkedInputs, setCheckedInputs }) => {
   );
 };
 
-export default Label;
+export default LibLabel;

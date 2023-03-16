@@ -1,12 +1,11 @@
 import os
 
-# url = os.getenv("DB_URL")
-# user = os.getenv("MYSQL_USER")
-# password = os.getenv("MYSQL_PASSWORD")
-
-url = "127.0.0.1"
-user = "root"
-password = 1234
+if os.getenv("DB_NAME"):
+    url = os.getenv("DB_NAME")
+    user = os.getenv("DB_USER")
+else:
+    url = "127.0.0.1"
+    user = "root"
 
 
 class Deployment:
