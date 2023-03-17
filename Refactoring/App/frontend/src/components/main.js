@@ -1,4 +1,5 @@
 import mainLogo from "./assets/mainlogo.svg";
+import mainLogoPng from "./assets/mainlogo.png";
 import MainFrame from "./modules/mainFrame";
 import LibLabel from "./modules/libLabel";
 import Search from "./modules/search";
@@ -17,7 +18,7 @@ function Logo() {
   return (
     <div className="flex-container flex-column mx-auto fade-in-box-dodo" style={{ width: "80%" }}>
       <div className="d-flex mx-auto align-items-end" style={{ flexBasis: "35%" }}>
-        <img className="titleLogo" src={mainLogo} alt="" />
+        <img className="titleLogo" src={mainLogoPng} alt="" />
       </div>
       <div className="flex-container mx-auto mb-2" style={{ flexBasis: "10%" }}>
         <Search

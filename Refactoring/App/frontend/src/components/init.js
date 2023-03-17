@@ -1,6 +1,7 @@
 import React, { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import mainLogo from "./assets/mainlogo.svg";
+import mainLogoPng from "./assets/mainlogo.png";
 import MainFrame from "./modules/mainFrame";
 function Init() {
   const navigate = useNavigate();
@@ -13,7 +14,7 @@ function Init() {
       <div className="flex-column flex-container">
         <div className="m-auto">
           <div className="d-flex btTitle">
-            <img className="titleLogo fade-out-box-dodo" src={mainLogo} alt="" />
+            <img className="titleLogo fade-out-box-dodo" src={mainLogoPng} alt="" />
           </div>
         </div>
       </div>

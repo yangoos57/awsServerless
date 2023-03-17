@@ -1,7 +1,7 @@
 from .model import SentenceBert
 from sklearn.metrics.pairwise import cosine_similarity
 from transformers import ElectraModel, ElectraTokenizerFast
-from typing import Union, Tuple, List
+from typing import Union, Tuple, List, Dict
 from collections import Counter
 from kiwipiepy import Kiwi
 from itertools import chain, islice
@@ -53,24 +53,24 @@ class keywordExtractor:
         for val in han_words.kor.values:
             self.noun_extractor.add_user_word(val)
 
-    def extract_keyword_list(self, doc: pd.Series, min_count: int = 3, min_length: int = 2) -> list:
+    def extract_keyword_list(self, doc: pd.Series, min_count: int = 3, min_length: int = 2) -> List:
         """
         min_count 이상 집계, 단어 길이 최소 min_length 이상인 단어를 수집합니다.
 
         parameter
         ---------------
         - doc: 도서정보
-        - min_count: 최소 집계 기준
-        - min_length: 최소 단어 길이
+        - min_count: 문장 내 최소 출현 빈도
+        - min_length: 단어의 최소 길이 min_length=2 설정 시 한 글자인 단어 제거
 
         """
-        raw_data = self._convert_series_to_keyword_list(doc)
+        raw_data = self._convert_series_to_list(doc)
         keyword_list = self._extract_keywords(raw_data)
-        translated_keyword_list = self._map_english_to_hangeul(keyword_list)
-        refined_keyword_list = self._eliminate_min_words(translated_keyword_list, min_count)
+        translated_keyword_list = self._map_english_to_korean(keyword_list)
+        refined_keyword_list = self._eliminate_min_count_words(translated_keyword_list, min_count)
         return list(filter(lambda x: len(x) >= min_length, refined_keyword_list))
 
-    def _convert_series_to_keyword_list(self, series: pd.Series) -> List[List[str]]:
+    def _convert_series_to_list(self, series: pd.Series) -> List[List[str]]:
         """Series에 속한 값을 하나의 str으로 연결"""
         book_title = series["title"]
         series = series.drop(["title", "isbn13"])
@@ -83,18 +83,18 @@ class keywordExtractor:
         tokenized_words = self.noun_extractor.tokenize(" ".join(words))
         return [word.form for word in tokenized_words if word.tag in ("NNG", "NNP", "SL")]
 
-    def _map_english_to_hangeul(self, word_list: list[str]) -> list[str]:
+    def _map_english_to_korean(self, word_list: list[str]) -> list[str]:
         """영단어를 한국어 단어로 치환"""
 
         converter = dict(self.eng_han_df.dropna().values)
 
-        def map_eng_to_han(word: str) -> str:
+        def map_eng_to_kor(word: str) -> str:
             han_word = converter.get(word)
             return han_word if han_word else word
 
-        return list(map(lambda x: map_eng_to_han(x.lower()), word_list))
+        return list(map(lambda x: map_eng_to_kor(x.lower()), word_list))
 
-    def _eliminate_min_words(self, candidate_keyword, min_count: int = 3):
+    def _eliminate_min_count_words(self, candidate_keyword, min_count: int = 3):
         """min_count 이상으로 집계되지 않은 단어 제거"""
         refined_han_words = filter(lambda x: x[1] >= min_count, Counter(candidate_keyword).items())
         return list(map(lambda x: x[0], refined_han_words))
@@ -111,7 +111,7 @@ class keywordExtractor:
         tokenized_keyword = self.tokenize_keyword(keyword_list)
         return self._create_keyword_embedding(tokenized_keyword)
 
-    def tokenize_keyword(self, text: Union[list[str], str], max_length=128) -> dict:
+    def tokenize_keyword(self, text: Union[list[str], str], max_length=128) -> Dict:
         if text:
             pass
         else:
@@ -192,11 +192,11 @@ class keywordExtractor:
         series = series.drop(["title", "isbn13"])
         return book_title + " " + " ".join(list(chain(*series.values)))
 
-    def _create_doc_embedding(self, tokenized_doc):
+    def _create_doc_embedding(self, tokenized_doc: Union[list[str], str]) -> torch.Tensor:
         """sbert를 활용해 doc_embedding 생성"""
         return self.sbert(**tokenized_doc)["sentence_embedding"]
 
-    def extract_keyword(self, docs: pd.DataFrame) -> dict:
+    def extract_keyword(self, docs: pd.DataFrame) -> Dict:
         """
         도서 데이터를 기반으로 키워드를 추출하는 메서드입니다.
         클래스 내 create_keyword_list, create_keyword_embedding, create_doc_emeddings를 기반으로 동작합니다.
@@ -242,8 +242,8 @@ class keywordExtractor:
         return max_pooling
 
     def _filter_top_n_keyword(
-        self, keyword_list: list, co_sim_score: np.array, rank: int = 20
-    ) -> list:
+        self, keyword_list: List, co_sim_score: np.array, rank: int = 20
+    ) -> List:
         """top_n 키워드 추출"""
         keyword = dict(zip(keyword_list, co_sim_score))
         sorted_keyword = sorted(keyword.items(), key=lambda k: k[1], reverse=True)

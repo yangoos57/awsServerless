@@ -34,7 +34,5 @@ services:
     environment:
       MYSQL_DATABASE: dodomoa_db
       MYSQL_ALLOW_EMPTY_PASSWORD: true
-        # MYSQL_ROOT_PASSWORD: 1234
-        # MYSQL_ROOT_HOST: '%'
     expose:
       - "3306"
