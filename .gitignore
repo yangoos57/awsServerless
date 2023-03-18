@@ -1,14 +1,10 @@
-#data File
-/data
-#practice File
-/practice
-
 .DS_Store
-/Refactoring/local/configs.py
-/Refactoring/local/data/local_data
-/Refactoring/raw_data
+/raw_data
 
+/local/configs.py
+/local/data/local_data/img
+/local/data/local_data/backup
+/local/ipynbfiles
 
-/Refactoring/App/frontend/node_modules
-/Refactoring/App/ipynbfiles
-/Refactoring/local/ipynbfiles
+/App/frontend/node_modules
+/App/ipynbfiles
