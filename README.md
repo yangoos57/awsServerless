@@ -4,18 +4,25 @@
 
 개인 프로젝트로 진행한 [Sbert를 활용한 도서 키워드 추출 모델](https://github.com/yangoos57/Sentence_bert_from_scratch/blob/main/keyword_extraction_using_sbert/main.ipynb)을 활용해 도서관 장서 검색 서비스를 구현하였습니다.
 
-> [링크](http://yangoos.me/)를 클릭하시면 서비스를 이동 하실 수 있습니다.
-
-Introduction
-
-### 프로젝트 진행 배경 <a name="introduction"></a>
+### 프로젝트 진행 배경
 
 평소 컴퓨터, 데이터 분야의 책을 빌릴때면 원하는 도서를 찾는데 어려움이 있었습니다. 도서 검색으로는 찾고자 하는 분야를 찾는데 한계가 있었으며 도서 분류 기준이 명확하지 않아 같은 분야임에도 여러 책장에 분산되어 직접 찾는 방법에도 어려움이 있었습니다. 이러한 불편함을 해결하기 위해 NLP 기반 도서 검색 프로젝트를 기획했습니다.
+
+
+### 프로젝트 구현 결과
+> [링크](http://yangoos.me/)를 클릭하시면 서비스를 이동 하실 수 있습니다.
+
+
+
+https://user-images.githubusercontent.com/98074313/226160516-234422e5-ebfb-4daa-9105-52ee225d6f83.mov
+
+
+
 
 ### 프로젝트 구조
 
 <br/>
-<img width=500px src='images/dodomoa_architecture.png'>
+<img width=600px src='images/dodomoa_architecture.png'>
 <br/>
 
 ### 프로젝트 구현 사항
