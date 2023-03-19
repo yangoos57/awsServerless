@@ -1,4 +1,3 @@
-import mainLogo from "./assets/mainlogo.svg";
 import mainLogoPng from "./assets/mainlogo.png";
 import MainFrame from "./modules/mainFrame";
 import LibLabel from "./modules/libLabel";
@@ -20,9 +19,9 @@ function Logo() {
       <div className="d-flex mx-auto align-items-end" style={{ flexBasis: "35%" }}>
         <img className="titleLogo" src={mainLogoPng} alt="" />
       </div>
-      <div className="flex-container mx-auto mb-2" style={{ flexBasis: "10%" }}>
+      <div className="flex-container flex-column mx-auto mb-2" style={{ flexBasis: "10%" }}>
         <Search
-          placeholder="찾고자 하는 도서 키워드를 검색하세요. ex) 파이썬, SQL"
+          placeholder="찾고자 하는 도서 키워드를 검색하세요. ex) 파이썬 머신러닝"
           setCheckedInputs={setKeyword}
           values={values}
         />

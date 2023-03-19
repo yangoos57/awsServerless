@@ -31,7 +31,7 @@ class BookSearcher:
         recommand_point = np.isin(self.book_keyword, np_recommand_keyword).sum(axis=1)
         total_point = (user_point * 3) + recommand_point
 
-        top_k_idx = np.argsort(total_point)[::-1][:100]
+        top_k_idx = np.argsort(total_point)[::-1][:50]
         return dict(zip(self.isbn_list[top_k_idx], total_point[top_k_idx]))
 
     def create_book_recommandation_df(self, db: Session, data: Dict) -> pd.DataFrame:

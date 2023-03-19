@@ -1,6 +1,6 @@
 import React from "react";
 
-function bookInfoBox(isbn13, bookname, authors, libname, classNo) {
+function bookInfoBox(isbn13, bookname, authors, libname, classNo, key) {
   var a = 0;
   var b = 0;
   var c = 0;
@@ -19,7 +19,7 @@ function bookInfoBox(isbn13, bookname, authors, libname, classNo) {
 
   var imgUrl = "images/" + isbn13 + ".jpg";
   return (
-    <div className="flex-container px-3 py-2 bookListBox">
+    <div className="flex-container px-3 py-2 bookListBox" key={key}>
       <div className="flex-container mx-auto p-1 libBox-card" style={{}}>
         {/* Book Info 배치 : 이미지 35% 나머지 65% */}
         <div className="me-2 libBox-card-img">
@@ -62,8 +62,8 @@ const BookList = ({ item }) => {
           <div
             className="d-flex flex-column"
             style={{ position: "absolute", overflow: "scroll", height: "100%", width: "100%" }}>
-            {item.map((v) => {
-              return bookInfoBox(v.isbn13, v.bookname, v.authors, v.lib_name, v.class_no);
+            {item.map((v, k) => {
+              return bookInfoBox(v.isbn13, v.bookname, v.authors, v.lib_name, v.class_no, k);
             })}
           </div>
         </div>

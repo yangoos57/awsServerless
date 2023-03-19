@@ -7,11 +7,13 @@ from routers.schemas import *
 from typing import Dict
 from uuid import uuid4
 import db.cruds as query
+from logs.utils import make_monitoring_logger
 
 router = APIRouter()
 Base.metadata.create_all(bind=engine)
 query.upload_data_when_init(db=next(get_db()))
 book_searcher = BookSearcher()
+log = make_monitoring_logger(__name__)
 
 
 @router.get("/health")
@@ -21,21 +23,25 @@ def health() -> Dict[str, str]:
 
 @router.post("/predict")
 def predict(data: Data, background_task: BackgroundTasks, db: Session = Depends(get_db)):
-    print(data.dict())
-    # predict data
     uuid = str(uuid4())
     request_data = data.dict()
-    print(request_data["user_search"][0])
-    book_df = book_searcher.create_book_recommandation_df(db, request_data)
+    user_keys = request_data["user_search"]
+    log.info(f"키워드 : {user_keys}")
 
-    # process register_items_to_db after responses
-    # background_task.add_task(register_items_to_db, df, uuid)
+    try:
+        book_df = book_searcher.create_book_recommandation_df(db, request_data).to_dict("records")
+        resp = True
+    except KeyError as e:
+        log.error(e)
+        book_df = {}
+        resp = False
 
     return {
         "user_search": request_data["user_search"],
         "selected_lib": request_data["selected_lib"],
+        "response": resp,
         "table_id": uuid,
-        "result": book_df.to_dict("records"),
+        "result": book_df,
     }
 
 
