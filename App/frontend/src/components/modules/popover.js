@@ -29,7 +29,7 @@ export default function BasicPopover({ name, checkedInputs, setCheckedInputs }) 
           color: "#4F4E4E",
           fontFamily: "NEXON",
           p: 0,
-          fontSize: window.innerWidth > 1441 ? "25px" : "16px",
+          fontSize: window.innerWidth < 575 ? "10px" : "16px",
         }}>
         {name}
       </Button>
@@ -45,7 +45,7 @@ export default function BasicPopover({ name, checkedInputs, setCheckedInputs }) 
         <Typography
           sx={{
             p: 0,
-            width: window.innerWidth > 1441 ? "400px" : "300px",
+            width: window.innerWidth < 575 ? "330px" : "500px",
             height: "100%",
             "& .MuiPopover-paper": { backgroundColor: "transparent" },
           }}>

@@ -37,7 +37,7 @@ const Search = ({ placeholder, setCheckedInputs, values }) => {
       <input
         onKeyDown={(e) => handleEnter(e, values, navigate)}
         placeholder={placeholder}
-        className="m-auto search-dodo"
+        className="search-dodo"
         onChange={(e) => setCheckedInputs(e.target.value)}
       />
       <div onClick={() => clickSearch(values, navigate)} className="d-flex searchIcon">

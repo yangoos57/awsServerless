@@ -64,13 +64,14 @@ function ResultPage() {
   };
 
   return (
-    <div className="flex-container flex-column mx-auto fade-in-box-dodo" style={{ width: "80%", position: "relative" }}>
+    <div className="flex-container flex-column mx-auto fade-in-box-dodo sub-frame">
       <div className="d-flex" style={{ flexBasis: "10%" }}>
         <MiniLib libs={libInfo} checkedInputs={libInfo} setCheckedInputs={setLibInfo} />
       </div>
-      <div className="d-flex mx-auto" style={{ flexBasis: "10%", width: "100%" }}>
+      <div className="d-flex mx-auto" style={{ flexBasis: "5%", width: "100%" }}>
         <Search placeholder={keyword} setCheckedInputs={setKeyword} values={searchInfo} />
       </div>
+      <div className="d-flex mx-auto" style={{ flexBasis: "2%", width: "100%" }}></div>
       <div className="flex-container mx-auto" style={{ flexBasis: "75%" }}>
         {resp === true ? <BookList item={item} /> : resp === false ? noSearchResult() : empty()}
       </div>

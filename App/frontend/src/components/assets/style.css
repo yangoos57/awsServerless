@@ -80,7 +80,7 @@
 .search-dodo{
     font-family: 'NEXON';
     width: 100%;
-    height: 70%;
+    height: 50px;
     border: 1px solid var(--gray-color);
     cursor: text;
     border-radius: 5px;
@@ -88,6 +88,7 @@
     color: var(--search-color);
     font-size: 16px;
     display: flex;
+    margin-top:10px;
 }
 ::-webkit-input-placeholder {
     text-align: center;
@@ -99,7 +100,7 @@
     padding: 0px;
     position: absolute;
     height: 55%;
-    bottom: 22%;
+    bottom: 15%;
     width: 15%;
     right: 0.5%;
     text-decoration: none;
@@ -128,10 +129,12 @@
     border: solid var(--gray-color);
     border-width: 0px 1px 1px 1px;
     color: var(--libBox-color);
-    padding: 10px 0 50px 0;
+    padding: 10px 0 20px 10px;
 }
 .libBox-names-column{
-    flex-basis: 30%;
+    flex-basis: 90%;
+    flex-wrap: wrap;
+    height: 200px;
 }
 .libBox-card{
     justify-content: space-evenly;
@@ -144,7 +147,9 @@
 .libBox-card-text{
     flex-basis: 75%;
 }
-
+.sub-frame{
+    padding: 0 80px 0 80px;
+}
 
 /* checkBox 관련 css */
 /*general styles for all CSS Checkboxes*/
@@ -260,7 +265,7 @@ input:focus::placeholder {
 }
 
 .bookListBox{ 
-    height: 160px;
+    height: 100%;
     
  }
 .bookInfo{ font-size: 15px; 
@@ -272,7 +277,6 @@ input:focus::placeholder {
     font-weight: Bolder ;
     color: #4F4E4E ;
     font-family: "NEXON" ;
-    flex-basis: 50% 
 }
 .minilogo-dodo{
     width:150px
@@ -284,6 +288,10 @@ input:focus::placeholder {
     animation: fadeout 1.2s;
     animation-fill-mode: forwards;
   }
+.input-example{
+    font-size: 14px;
+    margin: 5px 0 10px 5px;
+}
 @keyframes fadeout {
     from {
         opacity: 1;
@@ -318,25 +326,16 @@ input:focus::placeholder {
         font-size: 15px;
     }
     .libName{
-        font-size: 10px !important;
+        font-size: 12px !important;
     }
     .titleLogo{
         flex-basis: 30% !important;
-    }
-    .searchIcon{
-        bottom: 22%;
-    }
-    .bookListBox{ 
-        height: 220px
     }
     .bookInfo{
         font-size: 17px;
     }
     .bookTitleInfo{
         font-size: 16px;
-    }
-    .libBox-mini-dodo{
-        font-size: 25px;
     }
     .libBox-mini-dodo.libBox-dodo{
         height: 100%;
@@ -356,5 +355,8 @@ input:focus::placeholder {
     }
     .bookInfo{
         font-size: 10px;
+    }
+    .sub-frame{
+        padding: 0 40px 0 40px;
     }
 }

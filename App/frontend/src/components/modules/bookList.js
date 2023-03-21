@@ -1,30 +1,38 @@
 import React from "react";
+import defaultImg from "../assets/default.png";
 
 function bookInfoBox(isbn13, bookname, authors, libname, classNo, key) {
-  var a = 0;
-  var b = 0;
-  var c = 0;
-  window.innerWidth > 575 ? (a = 25) : (a = 25);
-  window.innerWidth > 575 ? (b = 20) : (b = 8);
-  window.innerWidth > 575 ? (c = 30) : (c = 10);
-  if (bookname.length > a) {
-    bookname = bookname.substring(0, a) + "...";
+  var titleLength = 0;
+  var libLength = 0;
+  var authorLength = 0;
+  window.innerWidth > 575 ? (titleLength = 23) : (titleLength = 23);
+  window.innerWidth > 575 ? (libLength = 10) : (libLength = 8);
+  window.innerWidth > 575 ? (authorLength = 20) : (authorLength = 10);
+  if (bookname.length > titleLength) {
+    bookname = bookname.substring(0, titleLength) + "...";
   }
-  if (authors.length > b) {
-    authors = authors.substring(0, b) + "...";
+  if (libname.length > libLength) {
+    libname = libname.substring(0, libLength) + "...";
   }
-  if (libname.length > c) {
-    libname = libname.substring(0, c) + "...";
+  if (authors.length > authorLength) {
+    authors = authors.substring(0, authorLength) + "...";
   }
 
   var imgUrl = "images/" + isbn13 + ".jpg";
   return (
     <div className="flex-container px-3 py-2 bookListBox" key={key}>
-      <div className="flex-container mx-auto p-1 libBox-card" style={{}}>
+      <div className="flex-container mx-auto p-1 libBox-card">
         {/* Book Info 배치 : 이미지 35% 나머지 65% */}
         <div className="me-2 libBox-card-img">
           <div className="flex-container m-auto">
-            <img style={{ width: "80px", height: "100px", border: "0.1px solid #4F4E4E" }} src={imgUrl} alt="" />
+            <img
+              style={{ width: "80px", height: "100px", border: "0.1px solid #4F4E4E" }}
+              src={imgUrl}
+              alt=""
+              onError={(e) => {
+                e.target.src = defaultImg;
+              }}
+            />
           </div>
         </div>
         <div className="flex-container flex-column libBox-card-text">
