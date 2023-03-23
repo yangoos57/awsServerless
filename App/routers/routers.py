@@ -21,6 +21,13 @@ def health() -> Dict[str, str]:
     return {"health": "ok"}
 
 
+@router.post("/test")
+def test(data: Data, background_task: BackgroundTasks, db: Session = Depends(get_db)):
+    request_data = data.dict()
+
+    return {"text": query.load_lib_isbn(db, request_data["selected_lib"])}
+
+
 @router.post("/predict")
 def predict(data: Data, background_task: BackgroundTasks, db: Session = Depends(get_db)):
     uuid = str(uuid4())

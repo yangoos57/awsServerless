@@ -27,6 +27,11 @@ services:
     environment:
       DB_NAME: db
       DB_USER: root
+    volumes:
+      - ./App:/dodomoa/App
+    working_dir: /dodomoa/App
+    command: ["uvicorn", "main:app","--host", "0.0.0.0", "--port", "80"]
+
 
   db:
     image: "mysql:latest"

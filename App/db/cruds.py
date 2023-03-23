@@ -15,14 +15,14 @@ table.BookInfo
 
 def load_book_info(db: Session, isbn: List[str]) -> List[schema.BookInfoSchemas]:
     """사용자 검색 결과에 따른 도서 정보 제공"""
-    x = db.query(table.BookInfo).filter(table.BookInfo.isbn13.in_(isbn)).all()
-    result = [v.__dict__ for v in x]
+    data = db.query(table.BookInfo).filter(table.BookInfo.isbn13.in_(isbn)).all()
+    result = [v.__dict__ for v in data]
     [v.pop("_sa_instance_state", None) for v in result]
 
     return result
 
 
-def load_lib_name_info(
+def check_books_in_selected_lib(
     db: Session, isbn: List[str], lib_name: List[str]
 ) -> List[schema.LibBookSchemas]:
     """선택한 도서관 내 추천 장서 보유 여부 제공"""
@@ -33,6 +33,12 @@ def load_lib_name_info(
         .all()
     )
     return data
+
+
+def load_lib_isbn(db: Session, lib_name: List[str]) -> List[schema.LibBookSchemas]:
+    """선택한 도서관의 장서 ISBN 제공"""
+    data = db.query(table.LibBooks.isbn13).filter(table.LibBooks.lib_name.in_(lib_name)).all()
+    return [v[0] for v in data]
 
 
 def update_db(db: Session, table_name: str, features: Any):
