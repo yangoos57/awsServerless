@@ -140,3 +140,5 @@ dmypy.json
 /App/ipynbfiles
 /stress_test
 /AWS/frontend
+
+*/*test.ipynb
