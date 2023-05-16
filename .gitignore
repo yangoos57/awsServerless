@@ -142,3 +142,4 @@ dmypy.json
 /AWS/frontend
 
 **/*test.ipynb
+**/TEST
