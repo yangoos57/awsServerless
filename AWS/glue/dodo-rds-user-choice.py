@@ -40,14 +40,7 @@ connection_mysql8_options = {
 df_mysql8 = glueContext.create_dynamic_frame.from_options(
     connection_type="mysql", connection_options=connection_mysql8_options
 )
-rds_df = df_mysql8.toDF()
-
-for col in ["isbn13", "user_id"]:
-    new_df = rds_df.groupBy(col).agg(count("*").alias("count"))
-    new_df = new_df.orderBy("count", ascending=False)
-    new_df.show()
-    new_df.coalesce(1).write.format("parquet").save(
-        f"s3://dodomoabucket/dodo-glue/dodo-rds/{col}/{year}/{month}/{day}/{time_string}"
-    )
-
+rds_df = df_mysql8.toDF().save(
+    f"s3://dodomoabucket/dodo-glue/dodo-rds/dodo-rds/{year}/{month}/{day}/{time_string}"
+)
 job.commit()

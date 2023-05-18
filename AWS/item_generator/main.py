@@ -5,7 +5,7 @@ from tqdm import tqdm
 
 start = time.time()
 
-for _ in tqdm(range(100)):
+for _ in tqdm(range(500)):
     for _ in range(10):
         tasks = []
         for _ in range(10):

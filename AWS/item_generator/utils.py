@@ -14,7 +14,7 @@ def _generate_book_item_indices(v) -> List:
     추천 도서 중 임의의 도서를 선택하기 위한 매서드입니다.
     해당 함수는 도서 리스트에 대한 Indices를 제공하는데 사용됩니다.
     """
-    random_counts = randint(1, int(v * 0.25) + 1)
+    random_counts = randint(0, int(v * 0.25) + 1)
     return [randint(0, v - 1) for _ in range(random_counts)]
 
 
