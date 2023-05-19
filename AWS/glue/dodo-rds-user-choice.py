@@ -6,6 +6,7 @@ from pyspark.context import SparkContext
 from awsglue.context import GlueContext
 from awsglue.job import Job
 from datetime import datetime
+import logging
 import pytz
 
 ## @params: [JOB_NAME]
@@ -15,6 +16,9 @@ sc = SparkContext()
 glueContext = GlueContext(sc)
 spark = glueContext.spark_session
 job = Job(glueContext)
+
+logger = glueContext.get_logger()
+logger.info("connection success!!")
 
 # timeset
 tz = pytz.timezone("Asia/Tokyo")
@@ -26,7 +30,6 @@ day = today.day
 time_string = today.strftime("%H%M%S")
 
 # job init
-job.init(args["JOB_NAME"], args)
 spark = glueContext.spark_session
 connection_mysql8_options = {
     "url": "jdbc:mysql://dodomoards.ccoalf3s8d7c.ap-northeast-2.rds.amazonaws.com:3306/dodomoa_db",
@@ -40,7 +43,22 @@ connection_mysql8_options = {
 df_mysql8 = glueContext.create_dynamic_frame.from_options(
     connection_type="mysql", connection_options=connection_mysql8_options
 )
-rds_df = df_mysql8.toDF().save(
-    f"s3://dodomoabucket/dodo-glue/dodo-rds/dodo-rds/{year}/{month}/{day}/{time_string}"
+ps_df = df_mysql8.toDF()
+logger.info("loading df_mysql8 success!")
+
+jbdc_url = "jdbc:redshift://dodo-redshift.cqxeoifnc1we.ap-northeast-2.redshift.amazonaws.com:5439/dev?user=admin&password=Admin111!"
+# Write the DataFrame to Redshift
+ps_df.write.format("com.databricks.spark.redshift").option("url", f"{jbdc_url}",).option(
+    "dbtable", "user_chocie"
+).option("tempdir", "s3://aws-glue-assets-965780743476-ap-northeast-2/temp/").option(
+    "aws_iam_role", "arn:aws:iam::965780743476:role/service-role/AWSGlueServiceRole"
+).mode(
+    "append"
+).save(
+    f"s3://dodomoabucket/dodo-glue/dodo-rds/rds/{year}/{month}/{day}/{time_string}"
 )
+
+# rds_df = df_mysql8.toDF().save(
+#     f"s3://dodomoabucket/dodo-glue/dodo-rds/dodo-rds/{year}/{month}/{day}/{time_string}"
+# )
 job.commit()
