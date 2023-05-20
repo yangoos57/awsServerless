@@ -12,6 +12,7 @@ sc = SparkContext()
 glueContext = GlueContext(sc)
 spark = glueContext.spark_session
 job = Job(glueContext)
+logger = glueContext.get_logger()
 
 # timeset
 tz = pytz.timezone("Asia/Tokyo")
@@ -20,7 +21,7 @@ today = datetime.now(tz)
 year = today.year
 month = today.month
 day = today.day
-time_string = today.strftime("%H%M%S")
+# time_string = today.strftime("%H%M%S")
 
 
 dyf = glueContext.create_dynamic_frame.from_catalog(
@@ -30,26 +31,31 @@ dyf = glueContext.create_dynamic_frame.from_catalog(
 
 df = dyf.toDF()
 df.coalesce(1).write.format("parquet").save(
-    f"s3://dodomoabucket/dodo-glue/dodo-dynamo/db_dynamo/{year}/{month}/{day}/{time_string}"
+    f"s3://dodomoabucket/dodo-glue/dodo-dynamo/dynamo-raw/{year}/{month}/{day}"
 )
+logger.info("saving dynamo-raw success!")
 
 
 df_isbn13 = df.select(df.query_id, explode(df["isbn13_list"])).toDF("query_id", "isbn13")
 df_isbn13.coalesce(1).write.format("parquet").save(
-    f"s3://dodomoabucket/dodo-glue/dodo-dynamo/isbn_13/{year}/{month}/{day}/{time_string}"
+    f"s3://dodomoabucket/dodo-glue/dodo-dynamo/isbn_13/{year}/{month}/{day}"
 )
 
+logger.info("saving isbn_13 success!")
 
 df_selected_lib = df.select(df.query_id, explode(df["selected_lib"])).toDF("query_id", "lib")
 df_selected_lib.coalesce(1).write.format("parquet").save(
-    f"s3://dodomoabucket/dodo-glue/dodo-dynamo/selected_lib/{year}/{month}/{day}/{time_string}"
+    f"s3://dodomoabucket/dodo-glue/dodo-dynamo/selected_lib/{year}/{month}/{day}"
 )
+
+logger.info("saving selected_lib success!")
 
 
 df_user_search = df.select(df.query_id, explode(df["user_search"])).toDF("query_id", "keyword")
 df_user_search.coalesce(1).write.format("parquet").save(
-    f"s3://dodomoabucket/dodo-glue/dodo-dynamo/user_search/{year}/{month}/{day}/{time_string}"
+    f"s3://dodomoabucket/dodo-glue/dodo-dynamo/user_search/{year}/{month}/{day}"
 )
 
+logger.info("saving user_search success!")
 
 job.commit()
