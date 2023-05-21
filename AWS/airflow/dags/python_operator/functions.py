@@ -8,6 +8,9 @@ import os
 
 
 def transform_dynamo_db(dir: str):
+    """
+    preprocess data from dynamo DB and RDS
+    """
     # timeset
     tz = pytz.timezone("Asia/Tokyo")
     today = datetime.now(tz)
@@ -23,13 +26,13 @@ def transform_dynamo_db(dir: str):
     # explode isbn13
     df_isbn13 = df.select(df.query_id, explode(df["isbn13_list"])).toDF("query_id", "isbn13")
     df_isbn13.coalesce(1).write.format("parquet").mode("overwrite").save(
-        f"data/result/isbn_13/{year}/{month}/{day}"
+        f"data/result/{year}/{month}/{day}/isbn_13"
     )
 
     # explode lib
     df_selected_lib = df.select(df.query_id, explode(df["selected_lib"])).toDF("query_id", "lib")
     df_selected_lib.coalesce(1).write.format("parquet").mode("overwrite").save(
-        f"data/result/selected_lib/{year}/{month}/{day}"
+        f"data/result/{year}/{month}/{day}/selected_lib"
     )
 
     # explode success_user_search
@@ -38,7 +41,7 @@ def transform_dynamo_db(dir: str):
         df_success_user_search.query_id, explode(df["user_search"])
     ).toDF("query_id", "keyword")
     df_success_user_search.coalesce(1).write.format("parquet").mode("overwrite").save(
-        f"data/result/success_user_search/{year}/{month}/{day}"
+        f"data/result/{year}/{month}/{day}/success_user_search"
     )
 
     # explode failed_user_search
@@ -47,11 +50,14 @@ def transform_dynamo_db(dir: str):
         df_failed_user_search.query_id, explode(df_failed_user_search["user_search"])
     ).toDF("query_id", "failed_keyword")
     df_failed_user_search.coalesce(1).write.format("parquet").mode("overwrite").save(
-        f"data/result/failed_user_search/{year}/{month}/{day}"
+        f"data/result/{year}/{month}/{day}/failed_user_search"
     )
 
 
 def extract_dynamo_db_to_local(dir: str, test):
+    """
+    extract dynamo db table to local and save it as parquet
+    """
     # timeset
 
     _check_directory(dir)
