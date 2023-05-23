@@ -1,21 +1,22 @@
 # 서버리스 웹 서비스 구축
 
 <br/>
+
 ```
 프로젝트 형태 : 1인 개발
 프로젝트 기간 : 2023.02.16 - 2023.05.22(3개월)
-Github 주소 : sss
 사용 기술 : Lambda, Dynamo DB, RDS, Word2Vec, SentenceBert, React
 ```
+
 <br/>
 
 ### 프로젝트 소개
 
 - 도서관 내 비치된 컴퓨터 & 과학 분야 도서를 키워드를 기반으로 찾아주는 서비스 구현
 
-- Docker-compose로 구축했던 [도서관 장서 검색 서비스]를 AWS Cloud 기반 서버리스로 재구축
+- Docker-compose로 구축했던 [도서관 장서 검색 서비스](https://github.com/yangoos57/awsServerless/tree/main/service-legacy)를 AWS Cloud 기반 서버리스로 재구축
 
-- 리포팅 자동화를 위한 데이터 파이프라인 구축 프로젝트와 연계 목적으로 서버리스 재구축 기획
+- `리포팅 자동화를 위한 데이터 파이프라인 구축 프로젝트`와 연계 목적으로 서버리스 재구축 기획
 
 - [서비스 페이지](https://yangoos.me)에 접속하여 이용 가능
 
@@ -37,7 +38,7 @@ Lambda, Dynamo DB, RDS를 활용해 서버리스 백엔드를 구축했으며, A
 
 #### Lambda 선정 이유
 
-- 리포팅 자동화를 위한 데이터 파이프라인 구축 프로젝트에 필요한 데이터 생성을 위해 대량의 API 요청 처리가 가능한 백엔드 구축 필요
+- [리포팅 자동화를 위한 데이터 파이프라인 구축](https://github.com/yangoos57/awsDatapipeline)에 필요한 데이터 생성을 위해 대량의 API 요청 처리가 가능한 백엔드 구축 필요
 
 - 머신러닝 기반으로 도서 검색을 지원하는 서비스이므로 초기 백엔드 구현 시 EC2와 ECS를 검토
 
