@@ -130,17 +130,20 @@ dmypy.json
 .pyre/
 
 .DS_Store
-/raw_data
 
-/local/configs.py
-/local/data/local_data/img
-/local/data/local_data/backup
-/local/ipynbfiles
 
-/App/frontend/node_modules
+
+
+**/node_modules
+frontend/package.json
+frontend/package-lock.json
 /App/ipynbfiles
 /stress_test
-/AWS/frontend
+
 
 **/*test.ipynb
 **/TEST
+**/raw_data
+**/local/data/local_data/img
+**/local/data/local_data/backup
+**/local/ipynbfiles
