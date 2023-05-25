@@ -5,6 +5,7 @@
 ```
 프로젝트 형태 : 1인 개발
 프로젝트 기간 : 2023.02.16 - 2023.05.22(3개월)
+웹 서비스 주소 : https://yangoos.me
 사용 기술 : Lambda, Dynamo DB, RDS, Word2Vec, SentenceBert, React
 ```
 
@@ -12,29 +13,39 @@
 
 ### 프로젝트 소개
 
-- 도서관 내 비치된 컴퓨터 & 과학 분야 도서를 키워드를 기반으로 찾아주는 서비스 구현
+- `보고서 자동화를 위한 데이터 파이프라인 구축 프로젝트`와 연계 목적으로 머신러닝 기반 도서관 장서 검색
+서비스를 <br/> 개발하고 이를 AWS Cloud 서버리스로 배포
 
-- Docker-compose로 구축했던 [도서관 장서 검색 서비스](https://github.com/yangoos57/awsServerless/tree/main/service-legacy)를 AWS Cloud 기반 서버리스로 재구축
-
-- `리포팅 자동화를 위한 데이터 파이프라인 구축 프로젝트`와 연계 목적으로 서버리스 재구축 기획
-
-- [서비스 페이지](https://yangoos.me)에 접속하여 이용 가능
+ - 서울시 도서관이 보유중인 컴퓨터/데이터 분야 도서 데이터 수집 및 전처리하여 도서 데이터셋을 구축하고
+NLP 모델(SetenceBert, Word2Vec)을 활용해 도서 검색 기능 구현
 
 https://user-images.githubusercontent.com/98074313/226160516-234422e5-ebfb-4daa-9105-52ee225d6f83.mov
 
 <br/>
 
-### 프로젝트 아키텍처
+### 머신러닝 기반 도서 검색 서비스 개발
+
+#### 키워드 기반 도서 추천 모델 개발
+- 수집한 도서 데이터셋을 활용해 SentenceBert를 fine-tuning하여 도서 키워드 추출 모델 제작 [[링크]](https://github.com/yangoos57/Sentence_bert_from_scratch/tree/main/keyword_extraction_using_sbert)
+
+- 사용자 검색 정보와 키워드 추출 모델을 통해 확보한 도서 키워드 간 코사인 유사도를 계산해 추천 도서 목록 추출
+
+#### 데이터 수집 자동화 및 머신러닝 파이프라인 구축
+- 매월 초 도서관 신규 구매 도에서에 대한 데이터 수집 및 데이터셋 업데이트
+
+- 업데이트 된 데이터셋을 재학습하고 배포를 자동화하는 머신러닝 파이프라인 구축
+
+<img width=650px src='readme-img/img5.png'>
+
+<br/>
+
+### AWS Cloud 기반 서비스 아키텍처
 
 <img width=600px src='readme-img/img1.png'>
 
 <br/>
 
 ### 서버리스 백엔드 구현 - Lambda, Dynamo DB, RDS 활용
-
-Lambda, Dynamo DB, RDS를 활용해 서버리스 백엔드를 구축했으며, API로 사용자 요청을 처리하는 `/predict`와 사용자 행동 데이터를 저장하는 `/user-choice` 개발
-
-<img width=600px src='readme-img/img2.png'>
 
 #### Lambda 선정 이유
 
