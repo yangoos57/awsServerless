@@ -49,7 +49,7 @@ https://user-images.githubusercontent.com/98074313/226160516-234422e5-ebfb-4daa-
 
 ### 서버리스 백엔드 구현 - Lambda, Dynamo DB, RDS 활용
 
-#### Lambda 선정 이유
+#### 확장성을 고려한 Lambda 기반 백엔드 구축
 
 - [리포팅 자동화를 위한 데이터 파이프라인 구축](https://github.com/yangoos57/awsDatapipeline)에 필요한 데이터 생성을 위해 대량의 API 요청 처리가 가능한 백엔드 구축 필요
 
@@ -61,25 +61,24 @@ https://user-images.githubusercontent.com/98074313/226160516-234422e5-ebfb-4daa-
 
 - 또한 Lambda 활용 시 추가로 운영해야할 서비스가 없는 가장 단순한 구조라 판단하여 도입 결정
 
-#### Dynamo DB 선정 이유
+#### 효율적인 데이터 처리를 위한 Dynamo DB 도입
 
-- 백엔드에서 처리한 Json 타입의 사용자 요청 결과를 별도의 데이터 처리없이 저장 가능한 DataBase 구축 필요
+- 사용자 요청 결과 반환 시 백엔드 내부에서 요청 데이터를 가공해 RDS에 저장하는 방법을 고민했으나 별도 처리 없이 DB 저장 후 일괄적으로 데이터를 가공하는 방식이 효율적이라 판단
 
-- 요청 결과 반환 시 백엔드 내부에서 데이터를 가공하여 RDS에 저장하는 방법을 고민했으나 대량으로 가공하는 방법이 효율적이라 판단
-
-- 사용자 요청 결과를 Dynamo DB에 저장한 뒤 AWS Glue 또는 pyspark를 활용해 일 단위 배치로 Redshift에 저장하는 방식 도입
+- Json 타입의 사용자 요청 결과를 Dynamo DB에 일괄 저장한 뒤 AWS Glue 또는 pyspark를 활용해 일 단위 배치로 가공하여 Redshift에 저장하는 방법을 결정
 
 <br/>
 
 ### 프론트엔드 구현 - Cloudfront, S3 활용
 
-#### S3 선정 이유
+#### 간편한 웹 호스팅 및 개발 환경 최적화를 위한 S3 활용
 
-- 별도 서버 구축없이 S3 업로드만으로 웹호스팅이 가능하며, Lambda와 연계 가능한 효율적인 구조라 판단
+- S3 업로드만으로도 별도 서버 구축없이 웹호스팅이 가능하며,Lambda와 연계 가능한 효율적인 구조라 판단
+
 - AWS S3 Sync와 React Build, Git 명령어 조합으로 간편하게 CI/CD를 도입해 효율적인 개발 환경 구축 가능
 
-#### CloudFront 선정 이유
+#### 비용 절감 및 보안 강화 목적의 CloudFront 활용
 
-- 클라이언트가 S3에 바로 접근할 경우 1,000건의 request 당 `$0.0045` 비용이 부과되는 반면 Cloudfront의 웹캐시 기능을 사용하여 서비스 시 Cloudfront의 1000만건 무료 request와 1000건 당 `$0.0009`로 제공이 가능해 S3만 사용하는 구조 대비 저렴한 비용으로 운영 가능
+- 클라이언트가 S3에 바로 접근할 경우 1,000건의 request 당 `$0.0045` 비용이 부과되는 반면 Cloudfront의 웹캐시 기능을 사용하여 서비스 시 Cloudfront의 1,000만건 무료 request 및 1,000건 당 `$0.0009`로 제공이 가능해 S3만 사용하는 구조 대비 저렴한 비용으로 운영 가능
 
 - S3로 웹 호스팅의 경우 HTTPS 사용이 불가능하고 bucket을 public으로 공개해야하지만, Cloudfront를 활용할 경우 S3 비공개로 웹호스팅이 가능하고 HTTPS를 사용이 가능하므로 보안 상 이점이 있다고 판단
